@@ -1,3 +1,5 @@
+"""Abstract Syntax Tree for KozakScript"""
+
 class KozakNumber:
     def __init__(self, value): self.value = value
     def __repr__(self): return f"KozakNumber({self.value})"
@@ -33,3 +35,16 @@ class KozakEcho:
 class KozakComment:
     def __init__(self, text): self.text = text
     def __repr__(self): return f"KozakComment({self.text!r})"
+
+class KozakInput:
+    def __init__(self, expr): self.expr = expr
+    def __repr__(self): return f"KozakInput({self.expr})"
+
+class KozakBoolean:
+    def __init__(self, value): self.value = value
+    def __repr__(self): return f"KozakBoolean({self.value})"
+
+class KozakComparisonOp:
+    def __init__(self, left, op, right):
+        self.left, self.op, self.right = left, op, right
+    def __repr__(self): return f"KozakComparisonOp({self.left}, {self.op}, {self.right})"

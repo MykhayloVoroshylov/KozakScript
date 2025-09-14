@@ -1,3 +1,5 @@
+"""Parser for KozakScript"""
+
 from core.ast import (
     KozakNumber,
     KozakString,
@@ -6,7 +8,10 @@ from core.ast import (
     KozakBinOp,
     KozakAssign,
     KozakProgram,
-    KozakEcho
+    KozakEcho,
+    KozakInput,
+    KozakBoolean,
+    KozakComparisonOp
 )
 
 class Parser:
@@ -43,23 +48,15 @@ class Parser:
             return None
 
         if tok.type == 'COMMENT':
-            comment_text = tok.value
             self.advance()
-            # normalize: strip // or /* */ if present
-            if comment_text.startswith('//'):
-                text = comment_text[2:].strip()
-            elif comment_text.startswith('/*') and comment_text.endswith('*/'):
-                text = comment_text[2:-2].strip()
-            else:
-                text = comment_text
-            return KozakComment(text)
-
+            return None
 
         if tok.type == 'ID':
             return self.assignment()
 
         elif tok.type == 'Spivaty':
             return self.echo()
+        
         else:
             raise SyntaxError(f"Unexpected token in statement: {tok}")
 
@@ -68,17 +65,27 @@ class Parser:
         op = self.expect('OP')
         if op.value != ':=':
             raise SyntaxError(f"Expected ':=', got {op.value}")
-        expr = self.expression()
+        expr = self.comparison()
         return KozakAssign(name, expr)
 
     def echo(self):
         self.expect('Spivaty')
         self.expect('LPAREN')
-        expr = self.expression()
+        tok = self.peek()
+        if tok and tok.type == 'RPAREN':
+            raise SyntaxError("Spivaty requires an expression to print!")
+        expr = self.comparison()
         self.expect('RPAREN')
         return KozakEcho(expr)
 
-    # ---- Expression grammar ----
+    def comparison(self):
+        left = self.expression()
+        while self.peek() and self.peek().type == 'OP' and self.peek().value in ('==', '!=', '<', '>', '<=', '>='):
+            op = self.expect('OP').value
+            right = self.expression()
+            left = KozakComparisonOp(left, op, right)
+        return left
+
     def expression(self):
         left = self.term()
         while self.peek() and self.peek().type == 'OP' and self.peek().value in ('+', '-'):
@@ -100,22 +107,45 @@ class Parser:
         if tok.type == 'NUMBER':
             self.advance()
             return KozakNumber(tok.value)
+        elif tok.type == 'Pravda':
+            self.advance()
+            return KozakBoolean(True)
+        elif tok.type == 'Nepravda':
+            self.advance()
+            return KozakBoolean(False)
         elif tok.type == 'ID':
             self.advance()
             return KozakVariable(tok.value)
         elif tok.type == 'LPAREN':
             self.advance()
-            expr = self.expression()
+            expr = self.comparison()
             self.expect('RPAREN')
             return expr
         elif tok.type == 'STRING':
             self.advance()
             raw = tok.value
-            # remove both single and double quotes
             if (raw.startswith('"') and raw.endswith('"')) or (raw.startswith("'") and raw.endswith("'")):
                 raw = raw[1:-1]
             return KozakString(raw)
-
+            
+        elif tok.type == 'Slukhai':
+            return self.input_expression()
 
         else:
             raise SyntaxError(f"Unexpected token in factor: {tok}")
+ 
+    def input_expression(self):
+        self.expect('Slukhai')
+        self.expect('LPAREN')
+        tok = self.peek()
+        if tok and tok.type == 'RPAREN':
+            raise SyntaxError("Slukhai requires a prompt expression!")
+        prompt_expr = self.comparison()
+        self.expect('RPAREN')
+        return KozakInput(prompt_expr)
+
+
+
+
+
+

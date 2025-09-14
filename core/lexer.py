@@ -1,9 +1,11 @@
+"""Lexer for KozakScript"""
+
 import re
 from collections import namedtuple
 
 Token = namedtuple(typename='Token', field_names=['type', 'value'])
 
-KEYWORDS = {'Hetman', 'Spivaty'}
+KEYWORDS = {'Hetman', 'Spivaty', 'Slukhai', 'Pravda', 'Nepravda'}
 
 TOKEN_SPECIFICATION = [
     ('NUMBER', r'\d+(\.\d*)?'),
@@ -33,10 +35,9 @@ def lex(code):
 
         elif kind == 'ID':
             if value in KEYWORDS:
-                yield Token(value, value)   # Token type = keyword itself (e.g. "Hetman")
+                yield Token(value, value)   
             else:
                 yield Token('ID', value)
-
 
         elif kind in ('LPAREN', 'RPAREN'):
             yield Token(kind, value)

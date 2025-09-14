@@ -10,4 +10,6 @@ Multi line
 Comment
 */
 
-Spivaty ("Slava" + " " + "Ukrayini!")
+name := Slukhai("Please enter your name, Kozache: ")
+Spivaty ("Welcome here, " + name)
+Spivaty (5 == 5)
