@@ -10,8 +10,10 @@ from core.ast import (
     KozakString,
     KozakInput,
     KozakBoolean,
-    KozakComparisonOp
+    KozakComparisonOp,
 )
+
+from core.parser import KozakTypeCast
 
 class Interpreter:
     def __init__(self):
@@ -35,6 +37,14 @@ class Interpreter:
                 return left + right   # works for both int and str in Python
             elif node.op == '-':
                 return left - right
+            elif node.op == '*':
+                return left * right
+            elif node.op == '/':
+                return left / right
+            elif node.op == '//':
+                return left // right
+            elif node.op == '^':
+                return left ** right
         elif isinstance(node, KozakString):
             return self._eval_string(node)
         elif isinstance(node, KozakInput):
@@ -43,6 +53,8 @@ class Interpreter:
             return self._eval_boolean(node)
         elif isinstance(node, KozakComparisonOp):
             return self._eval_comparison_op(node)
+        elif isinstance(node, KozakTypeCast):
+            return self._eval_type_cast(node)
         else:
             raise TypeError(f'Unknown node type: {type(node).__name__}')
 
@@ -72,27 +84,6 @@ class Interpreter:
             return self.env[node.name]
         raise NameError(f'Variable {node.name} is not defined')
 
-    def _eval_binop(self, node):
-        left = self.eval(node.left)
-        right = self.eval(node.right)
-
-        if node.op == '+':
-            # string concatenation
-            if isinstance(left, str) or isinstance(right, str):
-                return str(left) + str(right)
-            return left + right
-        elif node.op == '-':
-            return left - right
-        elif node.op == '*':
-            return left * right
-        elif node.op == '/':
-            return left / right
-        elif node.op == '//':
-            return left // right
-        elif node.op == '^':
-            return left ** right
-        else:
-            raise ValueError(f'Unknown operator: {node.op}')
 
     def _eval_string(self, node):
         return node.value
@@ -120,3 +111,20 @@ class Interpreter:
             return left <= right
         elif node.op == '>=':
             return left >= right
+        
+    def _eval_type_cast(self, node):
+        value = self.eval(node.expr)
+        
+        if node.target_type == 'Chyslo':
+            try:
+                return int(value)
+            except (ValueError, TypeError):
+                raise TypeError(f"Cannot cast '{value}' to 'Chyslo'.")
+        elif node.target_type == 'Ryadok':
+            return str(value)
+        elif node.target_type == 'Logika':
+            if value in ('Pravda', 'Nepravda', True, False, 0, 1):
+                return bool(value)
+            raise TypeError(f"Cannot cast '{value}' to 'Logika'.")
+        else:
+            raise ValueError(f"Unknown type cast: {node.target_type}")
