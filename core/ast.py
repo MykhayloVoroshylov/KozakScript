@@ -32,10 +32,6 @@ class KozakEcho:
     def __init__(self, expr): self.expr = expr
     def __repr__(self): return f"KozakEcho({self.expr})"
 
-class KozakComment:
-    def __init__(self, text): self.text = text
-    def __repr__(self): return f"KozakComment({self.text!r})"
-
 class KozakInput:
     def __init__(self, expr): self.expr = expr
     def __repr__(self): return f"KozakInput({self.expr})"
