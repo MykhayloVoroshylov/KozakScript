@@ -3,7 +3,6 @@
 from core.ast import (
     KozakNumber,
     KozakString,
-    KozakComment,
     KozakVariable,
     KozakBinOp,
     KozakAssign,
@@ -14,7 +13,16 @@ from core.ast import (
     KozakComparisonOp
 )
 
+import dataclasses
+
+
+@dataclasses.dataclass
+class KozakTypeCast:
+    target_type: str
+    expr: object
+
 class Parser:
+
     def __init__(self, tokens):
         self.tokens = tokens
         self.pos = 0
@@ -127,6 +135,8 @@ class Parser:
             if (raw.startswith('"') and raw.endswith('"')) or (raw.startswith("'") and raw.endswith("'")):
                 raw = raw[1:-1]
             return KozakString(raw)
+        elif tok.type in ('Chyslo', 'Ryadok', 'Logika'):
+            return self.type_cast()
             
         elif tok.type == 'Slukhai':
             return self.input_expression()
@@ -143,9 +153,9 @@ class Parser:
         prompt_expr = self.comparison()
         self.expect('RPAREN')
         return KozakInput(prompt_expr)
-
-
-
-
-
-
+    def type_cast(self):
+        tok = self.expect(self.peek().type) 
+        self.expect('LPAREN')
+        expr = self.comparison()
+        self.expect('RPAREN')
+        return KozakTypeCast(tok.type, expr)
