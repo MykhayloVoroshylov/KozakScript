@@ -5,7 +5,17 @@ from collections import namedtuple
 
 Token = namedtuple(typename='Token', field_names=['type', 'value'])
 
-KEYWORDS = {'Hetman', 'Spivaty', 'Slukhai', 'Pravda', 'Nepravda'}
+KEYWORDS = {'Hetman' : 'Hetman', 
+            'Spivaty': 'Spivaty', 
+            'Slukhai': 'Slukhai', 
+            'Pravda': 'Pravda', 
+            'Nepravda': 'Nepravda',
+            'Chyslo': 'Chyslo',
+            'Ryadok': 'Ryadok',
+            'Logika': 'Logika',
+            'Yaksho': 'Yakscho',
+            'I': 'I',
+            'Abo': 'Abo',}
 
 TOKEN_SPECIFICATION = [
     ('NUMBER', r'\d+(\.\d*)?'),
