@@ -5,29 +5,29 @@ from collections import namedtuple
 
 Token = namedtuple(typename='Token', field_names=['type', 'value'])
 
-KEYWORDS = {'Hetman' : 'Hetman', 
-            'Spivaty': 'Spivaty', 
-            'Slukhai': 'Slukhai',
-            'Povernuty': 'Povernuty',
-            'Zavdannya': 'Zavdannya',
-            'Dlya': 'Dlya',
-            'Doki': 'Doki', 
-            'Pravda': 'Pravda', 
-            'Nepravda': 'Nepravda',
-            'Chyslo': 'Chyslo',
-            'Ryadok': 'Ryadok',
-            'Logika': 'Logika',
-            'Yakscho': 'Yakscho',
-            'AboYakscho': 'AboYakscho',
-            'Inakshe': 'Inakshe',
-            'I': 'I',
-            'Abo': 'Abo',}
+KEYWORDS = {
+    'Hetman': 'Hetman', 
+    'Spivaty': 'Spivaty', 
+    'Slukhai': 'Slukhai',
+    'Povernuty': 'Povernuty',
+    'Zavdannya': 'Zavdannya',
+    'Dlya': 'Dlya',
+    'Doki': 'Doki', 
+    'Pravda': 'Pravda', 
+    'Nepravda': 'Nepravda',
+    'Chyslo': 'Chyslo',
+    'Ryadok': 'Ryadok',
+    'Logika': 'Logika',
+    'Yakscho': 'Yakscho',
+    'AboYakscho': 'AboYakscho',
+    'Inakshe': 'Inakshe',
+}
 
 TOKEN_SPECIFICATION = [
     ('NUMBER', r'\d+(\.\d*)?'),
-    ('STRING',   r'"[^"]*"|\'[^\']*\''),
+    ('STRING', r'"[^"]*"|\'[^\']*\''),
     ('MLCOMMENT', r'/\*.*?\*/'), 
-    ('COMMENT',  r'//[^\n]*'),
+    ('COMMENT', r'//[^\n]*'),
     ('ID', r'[a-zA-Z_][a-zA-Z_0-9]*'),
     ('OP', r'\+\+|--|&&|\|\||:=|==|!=|>=|<=|//|\^/|\^|[+\-*/=<>]+'),
     ('LPAREN', r'\('),
@@ -39,7 +39,7 @@ TOKEN_SPECIFICATION = [
     ('SKIP', r'[ \t]+'),
     ('NEWLINE', r'\n'),
     ('MISMATCH', r'.'),
-    ]
+]
 
 def lex(code):
     tok_regex = '|'.join(f'(?P<{name}>{pattern})' for name, pattern in TOKEN_SPECIFICATION)
@@ -54,10 +54,7 @@ def lex(code):
             yield Token(kind, value)
 
         elif kind == 'ID':
-            if value in KEYWORDS:
-                yield Token(value, value)   
-            else:
-                yield Token('ID', value)
+            yield Token(KEYWORDS.get(value, 'ID'), value)
 
         elif kind in ('LPAREN', 'RPAREN', 'LBRACE', 'RBRACE', 'SEMICOLON', 'COMMA'):
             yield Token(kind, value)
@@ -72,7 +69,7 @@ def lex(code):
             yield Token('OP', value)
 
         elif kind == 'STRING':
-            yield Token('STRING', value)        
+            yield Token('STRING', value)      
 
         elif kind == 'MISMATCH':
             raise SyntaxError(f'Unexpected character, kozache: {value!r}')
