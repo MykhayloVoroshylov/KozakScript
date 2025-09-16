@@ -22,7 +22,6 @@ from core.ast import (
 
 import dataclasses
 
-
 @dataclasses.dataclass
 class KozakTypeCast:
     target_type: str
@@ -64,21 +63,16 @@ class Parser:
         if not tok:
             return None
 
-        if tok.type == 'COMMENT':
+        if tok.type == 'COMMENT' or tok.type == 'MLCOMMENT':
             self.advance()
             return None
 
         if tok.type == 'ID':
-            if self.tokens[self.current_token_index + 1].value in ('++', '--'):
-                var_name = self.expect('ID').value
-                op_token = self.expect('OP').value
-                return KozakUnaryOp(op_token, KozakVariable(var_name))
             next_tok = self.tokens[self.current_token_index + 1]
-            if next_tok and next_tok.type == 'LPAREN':
+            if next_tok.type == 'LPAREN':
                 return self.function_call() 
             else:
                 return self.assignment()
-
 
         elif tok.type == 'Spivaty':
             return self.echo()
@@ -109,18 +103,31 @@ class Parser:
         op = self.expect('OP')
         if op.value != ':=':
             raise SyntaxError(f"Expected ':=', got {op.value}")
-        expr = self.comparison()
+        expr = self.or_expression()
         return KozakAssign(name, expr)
 
     def echo(self):
         self.expect('Spivaty')
         self.expect('LPAREN')
-        tok = self.peek()
-        if tok and tok.type == 'RPAREN':
-            raise SyntaxError("Spivaty requires an expression to print!")
-        expr = self.comparison()
+        expr = self.or_expression()
         self.expect('RPAREN')
         return KozakEcho(expr)
+
+    def or_expression(self):
+        left = self.and_expression()
+        while self.peek() and self.peek().value == '||':
+            op = self.expect('OP').value
+            right = self.and_expression()
+            left = KozakBinOp(left, op, right)
+        return left
+    
+    def and_expression(self):
+        left = self.comparison()
+        while self.peek() and self.peek().value == '&&':
+            op = self.expect('OP').value
+            right = self.comparison()
+            left = KozakBinOp(left, op, right)
+        return left
 
     def comparison(self):
         left = self.expression()
@@ -170,7 +177,7 @@ class Parser:
             return KozakVariable(tok.value)
         elif tok.type == 'LPAREN':
             self.advance()
-            expr = self.comparison()
+            expr = self.or_expression()
             self.expect('RPAREN')
             return expr
         elif tok.type == 'STRING':
@@ -181,27 +188,22 @@ class Parser:
             return KozakString(raw)
         elif tok.type in ('Chyslo', 'Ryadok', 'Logika'):
             return self.type_cast()
-            
         elif tok.type == 'Slukhai':
             return self.input_expression()
-
         else:
             raise SyntaxError(f"Unexpected token in factor: {tok}")
- 
+    
     def input_expression(self):
         self.expect('Slukhai')
         self.expect('LPAREN')
-        tok = self.peek()
-        if tok and tok.type == 'RPAREN':
-            raise SyntaxError("Slukhai requires a prompt expression!")
-        prompt_expr = self.comparison()
+        prompt_expr = self.or_expression()
         self.expect('RPAREN')
         return KozakInput(prompt_expr)
     
     def type_cast(self):
         tok = self.expect(self.peek().type) 
         self.expect('LPAREN')
-        expr = self.comparison()
+        expr = self.or_expression()
         self.expect('RPAREN')
         return KozakTypeCast(tok.type, expr)
     
@@ -211,14 +213,7 @@ class Parser:
         condition = self.or_expression()
         self.expect('RPAREN')
         self.expect('LBRACE')
-        
-        body = []
-        while self.peek() and self.peek().type != 'RBRACE':
-            stmt = self.statement()
-            if stmt:
-                body.append(stmt)
-        self.expect('RBRACE')
-        
+        body = self.block()
         else_if_parts = []
         while self.peek() and self.peek().type == 'AboYakscho':
             self.advance()
@@ -226,25 +221,14 @@ class Parser:
             else_if_condition = self.or_expression()
             self.expect('RPAREN')
             self.expect('LBRACE')
-            else_if_body = []
-            while self.peek() and self.peek().type != 'RBRACE':
-                stmt = self.statement()
-                if stmt:
-                    else_if_body.append(stmt)
-            self.expect('RBRACE')
+            else_if_body = self.block()
             else_if_parts.append((else_if_condition, else_if_body))
 
         else_part = None
         if self.peek() and self.peek().type == 'Inakshe':
             self.advance()
             self.expect('LBRACE')
-            else_body = []
-            while self.peek() and self.peek().type != 'RBRACE':
-                stmt = self.statement()
-                if stmt:
-                    else_body.append(stmt)
-            self.expect('RBRACE')
-            else_part = else_body
+            else_part = self.block()
 
         return KozakIf(condition, body, else_if_parts, else_part)
     
@@ -254,109 +238,64 @@ class Parser:
         condition = self.or_expression()
         self.expect('RPAREN')
         self.expect('LBRACE')
-
-        body = []
-        while self.peek() and self.peek().type != 'RBRACE':
-            stmt = self.statement()
-            if stmt:
-                body.append(stmt)
-        self.expect('RBRACE')
-
+        body = self.block()
         return KozakWhile(condition, body)
-
-    def or_expression(self):
-        left = self.and_expression()
-        while self.peek() and self.peek().value == '||':
-            op = self.expect('OP').value
-            right = self.and_expression()
-            left = KozakBinOp(left, op, right)
-        return left
     
-    def and_expression(self):
-        left = self.comparison()
-        while self.peek() and self.peek().value == '&&':
-            op = self.expect('OP').value
-            right = self.comparison()
-            left = KozakBinOp(left, op, right)
-        return left
-
     def for_statement(self):
         self.expect('Dlya')
         self.expect('LPAREN')
-
         initialization = self.assignment()
         self.expect('SEMICOLON')
-
         condition = self.or_expression()
         self.expect('SEMICOLON')
-
         step = self.statement()
         self.expect('RPAREN')
         self.expect('LBRACE')
-
-        body = []
-        while self.peek() and self.peek().type != 'RBRACE':
-            stmt = self.statement()
-            if stmt:
-                body.append(stmt)
-        self.expect('RBRACE')
-
+        body = self.block()
         return KozakFor(initialization, condition, step, body)
     
     def function_def(self):
         self.expect('Zavdannya')
         name = self.expect('ID').value
         self.expect('LPAREN')
-
-        # ВИПРАВЛЕНО: Використовуємо новий метод для парсингу параметрів
+        
         parameters = []
         if self.peek().type != 'RPAREN':
             parameters.append(self.expect('ID').value)
-            while self.peek() and self.peek().type == 'COMMA':
+            while self.peek().type == 'COMMA':
                 self.advance()
-                if self.peek().type == 'RPAREN':
-                    raise SyntaxError("Trailing comma is not allowed, kozache.")
                 parameters.append(self.expect('ID').value)
         self.expect('RPAREN')
         self.expect('LBRACE')
+        body = self.block()
+        return KozakFunctionDef(name, parameters, body)
 
+    def function_call(self):
+        name = self.expect('ID').value
+        self.expect('LPAREN')
+        arguments = []
+        
+        if self.peek().type != 'RPAREN':
+            arguments.append(self.or_expression())
+            while self.peek() and self.peek().type == 'COMMA':
+                self.advance()
+                if self.peek() and self.peek().type == 'RPAREN':
+                    raise SyntaxError("Function arguments cannot have a trailing comma, kozache.")
+                arguments.append(self.or_expression())
+        
+        self.expect('RPAREN')
+        return KozakFunctionCall(name, arguments)
+    
+    def return_statement(self):
+        self.expect('Povernuty')
+        value = self.or_expression()
+        return KozakReturn(value)
+
+    def block(self):
         body = []
         while self.peek() and self.peek().type != 'RBRACE':
             stmt = self.statement()
             if stmt:
                 body.append(stmt)
         self.expect('RBRACE')
-
-        return KozakFunctionDef(name, parameters, body)
-
-    
-    def function_call(self):
-        name = self.expect('ID').value
-        self.expect('LPAREN')
-
-        # ВИПРАВЛЕНО: Використовуємо новий метод для парсингу аргументів
-        arguments = self._parse_comma_separated_list()
-
-        self.expect('RPAREN')
-
-        return KozakFunctionCall(name, arguments)
-
-
-    
-    def return_statement(self):
-        self.expect('Povernuty')
-        value = self.or_expression()
-        return KozakReturn(value)
-    
-    def _parse_comma_separated_list(self):
-        items = []
-        if self.peek().type != 'RPAREN':
-            items.append(self.or_expression())
-            while self.peek() and self.peek().type == 'COMMA':
-                self.advance()
-                if self.peek().type == 'RPAREN':
-                    # Запобігаємо помилкам з комою в кінці списку
-                    raise SyntaxError("Trailing comma is not allowed, kozache.")
-                items.append(self.or_expression())
-        return items
-
+        return body
