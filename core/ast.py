@@ -1,4 +1,46 @@
+
 """Abstract Syntax Tree for KozakScript"""
+
+import dataclasses
+
+@dataclasses.dataclass
+class KozakIf:
+    condition: object
+    body: list
+    else_if_parts: list = dataclasses.field(default_factory=list)
+    else_part: object = None
+
+@dataclasses.dataclass
+class KozakWhile:
+    condition: object
+    body: list
+
+@dataclasses.dataclass
+class KozakUnaryOp:
+    op: str
+    target: object
+
+@dataclasses.dataclass
+class KozakFor:
+    initialization: object
+    condition: object
+    step: object
+    body: list
+
+@dataclasses.dataclass
+class KozakFunctionDef:
+    name: str
+    parameters: list
+    body: list
+
+@dataclasses.dataclass
+class KozakFunctionCall:
+    name: str
+    arguments: list
+
+@dataclasses.dataclass
+class KozakReturn:
+    value: object
 
 class KozakNumber:
     def __init__(self, value): self.value = value
