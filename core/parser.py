@@ -21,13 +21,6 @@ from core.ast import (
     KozakTypeCast
 )
 
-# import dataclasses
-
-# @dataclasses.dataclass
-# class KozakTypeCast:
-#     target_type: str
-#     expr: object
-
 class Parser:
 
     def __init__(self, tokens):
@@ -73,8 +66,8 @@ class Parser:
             if next_tok and next_tok.type == 'LPAREN':
                 return self.function_call()
             elif next_tok and next_tok.type == 'OP' and next_tok.value in ('++', '--'):
-                self.advance()  # Пропускаємо ID
-                self.advance()  # Пропускаємо оператор
+                self.advance()
+                self.advance()  
                 return KozakUnaryOp(next_tok.value, KozakVariable(tok.value))
             else:
                 return self.assignment()
@@ -125,7 +118,6 @@ class Parser:
                 expressions.append(self.or_expression())
         
         self.expect('RPAREN')
-        #print(f"DEBUG (parser): Creating KozakEcho with expressions: {expressions}")
         return KozakEcho(expressions)
 
     def or_expression(self):
@@ -188,7 +180,6 @@ class Parser:
             self.advance()
             return KozakBoolean(False)
         elif tok.type == 'ID':
-            # CORRECTED: Now checks for function calls within expressions
             if self.tokens[self.current_token_index + 1].type == 'LPAREN':
                 return self.function_call()
             else:
