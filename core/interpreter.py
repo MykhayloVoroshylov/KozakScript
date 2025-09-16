@@ -1,4 +1,3 @@
-
 """Interpreter for KozakScript"""
 
 from core.ast import (
@@ -125,7 +124,6 @@ class Interpreter:
         else:
             raise ValueError(f'Unknown operator: {node.op}')
 
-
     def _eval_string(self, node):
         return node.value
 
@@ -221,14 +219,10 @@ class Interpreter:
             raise TypeError(f"Function '{node.name}' expected {len(func_def.parameters)} arguments, but got {len(node.arguments)}.")
 
         original_env = self.env.copy()
-        for param, arg_val in zip(func_def.parameters, node.arguments):
-            self.env[param] = self.eval(arg_val)
-
-        for stmt in func_def.body:
-            self.eval(stmt)
-
-        self.env = original_env
         try:
+            for param, arg_val in zip(func_def.parameters, node.arguments):
+                self.env[param] = self.eval(arg_val)
+            
             for stmt in func_def.body:
                 self.eval(stmt)
             return None 
@@ -236,5 +230,3 @@ class Interpreter:
             return e.value 
         finally:
             self.env = original_env
-
-
