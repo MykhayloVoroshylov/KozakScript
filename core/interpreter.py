@@ -80,17 +80,18 @@ class Interpreter:
         self.env[node.name] = value
 
     def _eval_echo(self, node):
-        value = self.eval(node.expr)
-        if isinstance(value, bool):
-            if value is True:
-                print("Pravda")
+        values = []
+        for expr in node.expressions:
+            value = self.eval(expr)
+            if isinstance(value, bool):
+                values.append("Pravda" if value else "Nepravda")
             else:
-                print("Nepravda")
-        else:
-            print(value)
+                values.append(value)
+        
+        print(*values)
 
     def _eval_number(self, node):
-        return node.value
+            return (node.value)
 
     def _eval_variable(self, node):
         if node.name in self.env:
@@ -102,7 +103,13 @@ class Interpreter:
         right = self.eval(node.right)
         
         if node.op == '+':
-            return left + right
+            if isinstance(left, (int, float)) and isinstance(right, (int, float)):
+                return left + right
+            elif isinstance(left, str) or isinstance(right, str):
+                return str(left) + str(right)
+            else:
+                raise TypeError(f"Unsupported operand types for +: '{type(left).__name__}' and '{type(right).__name__}'")
+
         elif node.op == '-':
             return left - right
         elif node.op == '*':
@@ -159,6 +166,11 @@ class Interpreter:
                 return int(value)
             except (ValueError, TypeError):
                 raise TypeError(f"Cannot cast '{value}' to 'Chyslo'.")
+        elif node.target_type == 'DroboveChyslo':
+            try:
+                return float(value)
+            except (ValueError, TypeError):
+                raise TypeError(f"Cannot cast '{value}' to 'DroboveChyslo'.")
         elif node.target_type == 'Ryadok':
             return str(value)
         elif node.target_type == 'Logika':
