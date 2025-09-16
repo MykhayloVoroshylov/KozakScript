@@ -16,6 +16,7 @@ KEYWORDS = {
     'Pravda': 'Pravda', 
     'Nepravda': 'Nepravda',
     'Chyslo': 'Chyslo',
+    'DroboveChyslo': 'DroboveChyslo',
     'Ryadok': 'Ryadok',
     'Logika': 'Logika',
     'Yakscho': 'Yakscho',
