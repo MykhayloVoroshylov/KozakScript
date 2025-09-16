@@ -7,13 +7,19 @@ Token = namedtuple(typename='Token', field_names=['type', 'value'])
 
 KEYWORDS = {'Hetman' : 'Hetman', 
             'Spivaty': 'Spivaty', 
-            'Slukhai': 'Slukhai', 
+            'Slukhai': 'Slukhai',
+            'Povernuty': 'Povernuty',
+            'Zavdannya': 'Zavdannya',
+            'Dlya': 'Dlya',
+            'Doki': 'Doki', 
             'Pravda': 'Pravda', 
             'Nepravda': 'Nepravda',
             'Chyslo': 'Chyslo',
             'Ryadok': 'Ryadok',
             'Logika': 'Logika',
-            'Yaksho': 'Yakscho',
+            'Yakscho': 'Yakscho',
+            'AboYakscho': 'AboYakscho',
+            'Inakshe': 'Inakshe',
             'I': 'I',
             'Abo': 'Abo',}
 
@@ -23,9 +29,13 @@ TOKEN_SPECIFICATION = [
     ('MLCOMMENT', r'/\*.*?\*/'), 
     ('COMMENT',  r'//[^\n]*'),
     ('ID', r'[a-zA-Z_][a-zA-Z_0-9]*'),
-    ('OP', r':=|==|!=|>=|<=|//|\^|[+\-*/=<>]'),
+    ('OP', r'\+\+|--|&&|\|\||:=|==|!=|>=|<=|//|\^/|\^|[+\-*/=<>]+'),
     ('LPAREN', r'\('),
     ('RPAREN', r'\)'),
+    ('LBRACE', r'\{'),  
+    ('RBRACE', r'\}'),
+    ('SEMICOLON', r';'),
+    ('COMMA', r','),
     ('SKIP', r'[ \t]+'),
     ('NEWLINE', r'\n'),
     ('MISMATCH', r'.'),
@@ -49,7 +59,7 @@ def lex(code):
             else:
                 yield Token('ID', value)
 
-        elif kind in ('LPAREN', 'RPAREN'):
+        elif kind in ('LPAREN', 'RPAREN', 'LBRACE', 'RBRACE', 'SEMICOLON', 'COMMA'):
             yield Token(kind, value)
 
         elif kind in ('NEWLINE', 'SKIP'):
