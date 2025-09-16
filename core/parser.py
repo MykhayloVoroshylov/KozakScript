@@ -17,15 +17,16 @@ from core.ast import (
     KozakFor,
     KozakFunctionCall,
     KozakFunctionDef,
-    KozakReturn
+    KozakReturn,
+    KozakTypeCast
 )
 
-import dataclasses
+# import dataclasses
 
-@dataclasses.dataclass
-class KozakTypeCast:
-    target_type: str
-    expr: object
+# @dataclasses.dataclass
+# class KozakTypeCast:
+#     target_type: str
+#     expr: object
 
 class Parser:
 
@@ -69,8 +70,12 @@ class Parser:
 
         if tok.type == 'ID':
             next_tok = self.tokens[self.current_token_index + 1]
-            if next_tok.type == 'LPAREN':
-                return self.function_call() 
+            if next_tok and next_tok.type == 'LPAREN':
+                return self.function_call()
+            elif next_tok and next_tok.type == 'OP' and next_tok.value in ('++', '--'):
+                self.advance()  # Пропускаємо ID
+                self.advance()  # Пропускаємо оператор
+                return KozakUnaryOp(next_tok.value, KozakVariable(tok.value))
             else:
                 return self.assignment()
 
@@ -98,6 +103,7 @@ class Parser:
         else:
             raise SyntaxError(f"Unexpected token in statement: {tok}")
 
+
     def assignment(self):
         name = self.expect('ID').value
         op = self.expect('OP')
@@ -109,9 +115,18 @@ class Parser:
     def echo(self):
         self.expect('Spivaty')
         self.expect('LPAREN')
-        expr = self.or_expression()
+        expressions = []
+        if self.peek().type != 'RPAREN':
+            expressions.append(self.or_expression())
+            while self.peek() and self.peek().type == 'COMMA':
+                self.advance()
+                if self.peek() and self.peek().type == 'RPAREN':
+                    raise SyntaxError("Function arguments cannot have a trailing comma, kozache.")
+                expressions.append(self.or_expression())
+        
         self.expect('RPAREN')
-        return KozakEcho(expr)
+        #print(f"DEBUG (parser): Creating KozakEcho with expressions: {expressions}")
+        return KozakEcho(expressions)
 
     def or_expression(self):
         left = self.and_expression()
@@ -173,8 +188,12 @@ class Parser:
             self.advance()
             return KozakBoolean(False)
         elif tok.type == 'ID':
-            self.advance()
-            return KozakVariable(tok.value)
+            # CORRECTED: Now checks for function calls within expressions
+            if self.tokens[self.current_token_index + 1].type == 'LPAREN':
+                return self.function_call()
+            else:
+                self.advance()
+                return KozakVariable(tok.value)
         elif tok.type == 'LPAREN':
             self.advance()
             expr = self.or_expression()
@@ -186,7 +205,7 @@ class Parser:
             if (raw.startswith('"') and raw.endswith('"')) or (raw.startswith("'") and raw.endswith("'")):
                 raw = raw[1:-1]
             return KozakString(raw)
-        elif tok.type in ('Chyslo', 'Ryadok', 'Logika'):
+        elif tok.type in ('Chyslo', 'Ryadok', 'Logika', 'DroboveChyslo'):
             return self.type_cast()
         elif tok.type == 'Slukhai':
             return self.input_expression()
