@@ -1,15 +1,64 @@
 Hetman
 
-//a := 1
-//b := 2
+// --- Перевірка арифметики ---
+a := 5;
+b := 2;
+c := a + b * 3;
+Spivaty("Арифметика:", c);   // Очікувано: 11
 
-//Comment
+// --- Присвоєння та інкремент ---
+a := a + 1;
+Spivaty("a після інкременту:", a); // Очікувано: 6
 
-/*
-Multi line
-Comment
-*/
+// --- If / Else ---
+y := 10;
+Yakscho (y > 5 || y == 4) {
+    Spivaty("y більше 5");
+} Inakshe {
+    Spivaty("y менше або дорівнює 5");
+}
 
-name := Slukhai("Please enter your name, Kozache: ")
-Spivaty ("Welcome here, " + name)
-Spivaty (5 == 5)
+// --- While ---
+i := 0;
+Doki (i < 3) {
+    Spivaty("Цикл While, i =", i);
+    i := i + 1;
+}
+
+// --- For ---
+Dlya (j := 1; j <= 3; j := j + 2) {
+    Spivaty("Цикл For, j =", j);
+}
+
+// --- Функції ---
+Zavdannya dodaty(x, y){
+    Povernuty x + y;
+}
+
+rez := dodaty(7, 8);
+Spivaty("Результат dodaty(7,8):", rez);  // Очікувано: 15
+
+// --- Логіка ---
+t := (1 < 2) && (3 > 1);
+f := (1 == 2) || (5 < 3);
+Spivaty("Логіка:", t, f); // Очікувано: True False
+
+// --- Касти типів ---
+num := Chyslo("123");
+txt := Ryadok(456);
+Spivaty("Касти:", num + 1, txt); // Очікувано: 124 "456"
+
+// --- Ввід (для перевірки руками) ---
+name := Slukhai("Введи ім'я: ");
+Spivaty("Привіт,", name);
+
+
+k:=Chyslo(Slukhai("Enter Number: "));
+m:=DroboveChyslo(Slukhai("Enter Number: "));
+f:= k+m;
+Spivaty(f);
+
+Spivaty("Hello" + " World");
+
+Spivaty(8^/3);
+
