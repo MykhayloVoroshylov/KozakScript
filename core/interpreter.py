@@ -21,6 +21,7 @@ from core.ast import (
 )
 
 from core.parser import KozakTypeCast
+from core.errors import KozakTypeError, KozakNameError, KozakValueError
 
 class ReturnValue(Exception):
     def __init__(self, value):
@@ -69,7 +70,7 @@ class Interpreter:
         elif isinstance(node, KozakReturn):
             raise ReturnValue(self.eval(node.value))
         else:
-            raise TypeError(f'Unknown node type: {type(node).__name__}')
+            raise KozakTypeError(f'Unknown node type: {type(node).__name__}')
 
     def _eval_program(self, node):
         for stmt in node.statements:
@@ -96,7 +97,7 @@ class Interpreter:
     def _eval_variable(self, node):
         if node.name in self.env:
             return self.env[node.name]
-        raise NameError(f'Variable {node.name} is not defined')
+        raise KozakNameError(f'Variable {node.name} is not defined')
 
     def _eval_binop(self, node):
         left = self.eval(node.left)
@@ -108,7 +109,7 @@ class Interpreter:
             elif isinstance(left, str) or isinstance(right, str):
                 return str(left) + str(right)
             else:
-                raise TypeError(f"Unsupported operand types for +: '{type(left).__name__}' and '{type(right).__name__}'")
+                raise KozakTypeError(f"Unsupported operand types for +: '{type(left).__name__}' and '{type(right).__name__}'")
 
         elif node.op == '-':
             return left - right
@@ -122,14 +123,14 @@ class Interpreter:
             return left ** right
         elif node.op == '^/':
             if right == 0:
-                raise ValueError("Root exponent cannot be zero!")
+                raise KozakValueError("Root exponent cannot be zero!")
             return left ** (1 / right)
         elif node.op == '&&':
             return left and right
         elif node.op == '||':
             return left or right
         else:
-            raise ValueError(f'Unknown operator: {node.op}')
+            raise KozakValueError(f'Unknown operator: {node.op}')
 
     def _eval_string(self, node):
         return node.value
@@ -165,20 +166,20 @@ class Interpreter:
             try:
                 return int(value)
             except (ValueError, TypeError):
-                raise TypeError(f"Cannot cast '{value}' to 'Chyslo'.")
+                raise KozakTypeError(f"Cannot cast '{value}' to 'Chyslo'.")
         elif node.target_type == 'DroboveChyslo':
             try:
                 return float(value)
-            except (ValueError, TypeError):
-                raise TypeError(f"Cannot cast '{value}' to 'DroboveChyslo'.")
+            except (ValueError, KozakTypeError):
+                raise KozakTypeError(f"Cannot cast '{value}' to 'DroboveChyslo'.")
         elif node.target_type == 'Ryadok':
             return str(value)
         elif node.target_type == 'Logika':
             if value in ('Pravda', 'Nepravda', True, False, 0, 1):
                 return bool(value)
-            raise TypeError(f"Cannot cast '{value}' to 'Logika'.")
+            raise KozakTypeError(f"Cannot cast '{value}' to 'Logika'.")
         else:
-            raise ValueError(f"Unknown type cast: {node.target_type}")
+            raise KozakValueError(f"Unknown type cast: {node.target_type}")
     
     def _eval_if(self, node):
         if self.eval(node.condition):
@@ -225,10 +226,10 @@ class Interpreter:
         func_def = self.functions.get(node.name)
         
         if not func_def:
-            raise NameError(f"Function '{node.name}' is not defined.")
+            raise KozakNameError(f"Function '{node.name}' is not defined.")
 
         if len(node.arguments) != len(func_def.parameters):
-            raise TypeError(f"Function '{node.name}' expected {len(func_def.parameters)} arguments, but got {len(node.arguments)}.")
+            raise KozakTypeError(f"Function '{node.name}' expected {len(func_def.parameters)} arguments, but got {len(node.arguments)}.")
 
         original_env = self.env.copy()
         try:
