@@ -1,4 +1,3 @@
-
 """Abstract Syntax Tree for KozakScript"""
 
 import dataclasses
@@ -91,3 +90,18 @@ class KozakComparisonOp:
 class KozakTypeCast:
     target_type: str
     expr: object
+
+@dataclasses.dataclass
+class KozakArray:
+    elements: list
+
+@dataclasses.dataclass
+class KozakArrayIndex:
+    array: object
+    index: object
+
+@dataclasses.dataclass
+class KozakForEach:
+    var_name: str
+    array_expr: object
+    body: list
