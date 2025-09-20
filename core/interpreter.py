@@ -1,4 +1,5 @@
 """Interpreter for KozakScript"""
+import random
 
 from core.ast import (
     KozakNumber,
@@ -17,20 +18,26 @@ from core.ast import (
     KozakFor,
     KozakFunctionCall,
     KozakFunctionDef,
-    KozakReturn
+    KozakReturn,
+    KozakArrayIndex,
+    KozakArray,
+    KozakTypeCast,
+    KozakForEach
 )
-
-from core.parser import KozakTypeCast
-from core.errors import KozakTypeError, KozakNameError, KozakValueError
 
 class ReturnValue(Exception):
     def __init__(self, value):
         self.value = value
 
+class RuntimeErrorKozak(Exception):
+    def __init__(self, message):
+        super().__init__(message)
+
 class Interpreter:
     def __init__(self):
         self.env = {}
         self.functions = {} 
+
 
     def eval(self, node):
         if isinstance(node, KozakProgram):
@@ -69,8 +76,14 @@ class Interpreter:
             return self._eval_type_cast(node)
         elif isinstance(node, KozakReturn):
             raise ReturnValue(self.eval(node.value))
+        elif isinstance(node, KozakArray):
+            return self._eval_array(node)
+        elif isinstance(node, KozakArrayIndex):
+            return self._eval_array_index(node)
+        elif isinstance(node, KozakForEach):
+            return self._eval_for_each(node)
         else:
-            raise KozakTypeError(f'Unknown node type: {type(node).__name__}')
+            raise RuntimeErrorKozak(f'Unknown node type: {type(node).__name__}')
 
     def _eval_program(self, node):
         for stmt in node.statements:
@@ -92,12 +105,12 @@ class Interpreter:
         print(*values)
 
     def _eval_number(self, node):
-            return (node.value)
+        return (node.value)
 
     def _eval_variable(self, node):
         if node.name in self.env:
             return self.env[node.name]
-        raise KozakNameError(f'Variable {node.name} is not defined')
+        raise RuntimeErrorKozak(f'Variable {node.name} is not defined')
 
     def _eval_binop(self, node):
         left = self.eval(node.left)
@@ -109,28 +122,31 @@ class Interpreter:
             elif isinstance(left, str) or isinstance(right, str):
                 return str(left) + str(right)
             else:
-                raise KozakTypeError(f"Unsupported operand types for +: '{type(left).__name__}' and '{type(right).__name__}'")
-
+                raise RuntimeErrorKozak(f"Unsupported operand types for +: '{type(left).__name__}' and '{type(right).__name__}'")
         elif node.op == '-':
             return left - right
         elif node.op == '*':
             return left * right
         elif node.op == '/':
+            if right == 0:
+                raise RuntimeErrorKozak("Cannot divide by zero, kozache.")
             return left / right
+        elif node.op == '%':
+            return left % right
         elif node.op == '//':
             return left // right
         elif node.op == '^':
             return left ** right
         elif node.op == '^/':
             if right == 0:
-                raise KozakValueError("Root exponent cannot be zero!")
+                raise RuntimeErrorKozak("Root exponent cannot be zero!")
             return left ** (1 / right)
         elif node.op == '&&':
             return left and right
         elif node.op == '||':
             return left or right
         else:
-            raise KozakValueError(f'Unknown operator: {node.op}')
+            raise RuntimeErrorKozak(f'Unknown operator: {node.op}')
 
     def _eval_string(self, node):
         return node.value
@@ -166,20 +182,20 @@ class Interpreter:
             try:
                 return int(value)
             except (ValueError, TypeError):
-                raise KozakTypeError(f"Cannot cast '{value}' to 'Chyslo'.")
+                raise RuntimeErrorKozak(f"Cannot cast '{value}' to 'Chyslo'.")
         elif node.target_type == 'DroboveChyslo':
             try:
                 return float(value)
-            except (ValueError, KozakTypeError):
-                raise KozakTypeError(f"Cannot cast '{value}' to 'DroboveChyslo'.")
+            except (ValueError, TypeError):
+                raise RuntimeErrorKozak(f"Cannot cast '{value}' to 'DroboveChyslo'.")
         elif node.target_type == 'Ryadok':
             return str(value)
         elif node.target_type == 'Logika':
             if value in ('Pravda', 'Nepravda', True, False, 0, 1):
                 return bool(value)
-            raise KozakTypeError(f"Cannot cast '{value}' to 'Logika'.")
+            raise RuntimeErrorKozak(f"Cannot cast '{value}' to 'Logika'.")
         else:
-            raise KozakValueError(f"Unknown type cast: {node.target_type}")
+            raise RuntimeErrorKozak(f"Unknown type cast: {node.target_type}")
     
     def _eval_if(self, node):
         if self.eval(node.condition):
@@ -224,12 +240,147 @@ class Interpreter:
 
     def _eval_function_call(self, node):
         func_def = self.functions.get(node.name)
+
+        if node.name == 'append':
+            if len(node.arguments) != 2:
+                raise RuntimeErrorKozak("Function 'append' expects exactly 2 arguments, kozache.")
+            arr = self.eval(node.arguments[0])
+            value = self.eval(node.arguments[1])
+            if not isinstance(arr, list):
+                raise RuntimeErrorKozak("First argument of 'append' must be an array, kozache.")
+            arr.append(value)
+            return None
         
+        if node.name == 'insert':
+            if len(node.arguments) != 3:
+                raise RuntimeErrorKozak("Function 'insert' expects exactly 3 arguments, kozache.")
+            arr = self.eval(node.arguments[0])
+            index = self.eval(node.arguments[1])
+            value = self.eval(node.arguments[2])
+            if not isinstance(arr, list):
+                raise RuntimeErrorKozak("First argument of 'insert' must be an array, kozache.")
+            if not isinstance(index, int):
+                raise RuntimeErrorKozak("Second argument of 'insert' must be an integer, kozache.")
+            if index < 0 or index > len(arr):
+                raise RuntimeErrorKozak("Array index out of bounds, kozache.")
+            arr.insert(index, value)
+            return None
+
+        if node.name == 'index_of':
+            if len(node.arguments) != 2:
+                raise RuntimeErrorKozak("Function 'index_of' expects exactly 2 arguments, kozache.")
+            arr = self.eval(node.arguments[0])
+            value = self.eval(node.arguments[1])
+            if not isinstance(arr, list):
+                raise RuntimeErrorKozak("First argument of 'index_of' must be an array, kozache.")
+            try:
+                return arr.index(value)
+            except ValueError:
+                return -1
+
+        if node.name == 'contains':
+            if len(node.arguments) != 2:
+                raise RuntimeErrorKozak("Function 'contains' expects exactly 2 arguments, kozache.")
+            arr = self.eval(node.arguments[0])
+            value = self.eval(node.arguments[1])
+            if not isinstance(arr, list):
+                raise RuntimeErrorKozak("First argument of 'contains' must be an array, kozache.")
+            return value in arr
+
+        if node.name == 'slice':
+            if len(node.arguments) not in (2, 3):
+                raise RuntimeErrorKozak("Function 'slice' expects 2 or 3 arguments, kozache.")
+            arr = self.eval(node.arguments[0])
+            start = self.eval(node.arguments[1])
+            end = self.eval(node.arguments[2]) if len(node.arguments) == 3 else None
+            if not isinstance(arr, list):
+                raise RuntimeErrorKozak("First argument of 'slice' must be an array, kozache.")
+            if not isinstance(start, int) or (end is not None and not isinstance(end, int)):
+                raise RuntimeErrorKozak("Start and end arguments must be integers, kozache.")
+            return arr[start:end]
+
+        if node.name == 'clear':
+            if len(node.arguments) != 1:
+                raise RuntimeErrorKozak("Function 'clear' expects exactly 1 argument, kozache.")
+            arr = self.eval(node.arguments[0])
+            if not isinstance(arr, list):
+                raise RuntimeErrorKozak("Argument of 'clear' must be an array, kozache.")
+            arr.clear()
+            return None
+
+
+        if node.name == 'pop':
+            if len(node.arguments) != 1:
+                raise RuntimeErrorKozak("Function 'pop' expects exactly 1 argument, kozache.")
+            arr = self.eval(node.arguments[0])
+            if not isinstance(arr, list):
+                raise RuntimeErrorKozak("Argument of 'pop' must be an array, kozache.")
+            if not arr:
+                raise RuntimeErrorKozak("Cannot pop from empty array, kozache.")
+            return arr.pop()
+
+        if node.name == 'remove':
+            if len(node.arguments) != 2:
+                raise RuntimeErrorKozak("Function 'remove' expects exactly 2 arguments, kozache.")
+            arr = self.eval(node.arguments[0])
+            index = self.eval(node.arguments[1])
+            if not isinstance(arr, list):
+                raise RuntimeErrorKozak("First argument of 'remove' must be an array, kozache.")
+            if not isinstance(index, int):
+                raise RuntimeErrorKozak("Second argument of 'remove' must be an integer, kozache.")
+            if index < 0 or index >= len(arr):
+                raise RuntimeErrorKozak("Array index out of bounds, kozache.")
+            arr.pop(index)
+            return None
+
+        
+        if node.name == 'Zapysaty':
+            if len(node.arguments) < 2 or len(node.arguments) > 3:
+                raise RuntimeErrorKozak("Function 'Zapysaty' expects 2 or 3 arguments, kozache.")
+            file_name = self.eval(node.arguments[0])
+            content = self.eval(node.arguments[1])
+            append_mode = False
+            if len(node.arguments) == 3:
+                append_mode = bool(self.eval(node.arguments[2]))
+            mode = 'a' if append_mode else 'w'
+            if not isinstance(file_name, str) or not isinstance(content, str):
+                raise RuntimeErrorKozak("Arguments for 'Zapysaty' must be strings, kozache.")
+            with open(file_name, mode, encoding='utf-8') as f:
+                f.write(content)
+            return None
+
+        if node.name == 'Chytaty':
+            if len(node.arguments) != 1:
+                raise RuntimeErrorKozak("Function 'Chytaty' expects exactly 1 argument, kozache.")
+            file_name = self.eval(node.arguments[0])
+            if not isinstance(file_name, str):
+                raise RuntimeErrorKozak("Argument for 'Chytaty' must be a string, kozache.")
+            with open(file_name, 'r', encoding='utf-8') as f:
+                return f.read()
+
+        if node.name == 'dovzhyna':
+            if len(node.arguments) != 1:
+                raise RuntimeErrorKozak("Function 'dovzhyna' expects exactly 1 argument, kozache.")
+            arg = self.eval(node.arguments[0])
+            if not isinstance(arg, (list, str, tuple)):
+                raise RuntimeErrorKozak("Argument for 'dovzhyna must be an array or a string, kozache.")
+            return len(arg)
+        
+        if node.name == 'randint':
+            if len(node.arguments) != 2:
+                raise RuntimeErrorKozak("Function 'randint' expects exactly 2 arguments, kozache.")
+            start = self.eval(node.arguments[0])
+            end = self.eval(node.arguments[1])
+            if not isinstance(start, int) or not isinstance(end, int):
+                raise RuntimeErrorKozak("Arguments for 'randint' must be integers, kozache.")
+            return random.randint(start, end)
+
+        # Existing user-defined function handling
         if not func_def:
-            raise KozakNameError(f"Function '{node.name}' is not defined.")
+            raise RuntimeErrorKozak(f"Function '{node.name}' is not defined.")
 
         if len(node.arguments) != len(func_def.parameters):
-            raise KozakTypeError(f"Function '{node.name}' expected {len(func_def.parameters)} arguments, but got {len(node.arguments)}.")
+            raise RuntimeErrorKozak(f"Function '{node.name}' expected {len(func_def.parameters)} arguments, but got {len(node.arguments)}.")
 
         original_env = self.env.copy()
         try:
@@ -243,3 +394,31 @@ class Interpreter:
             return e.value 
         finally:
             self.env = original_env
+
+
+    def _eval_array(self, node):
+        return [self.eval(element) for element in node.elements]
+
+    def _eval_array_index(self, node):
+        array = self.eval(node.array)
+        index = self.eval(node.index)
+        
+        if not isinstance(array, list):
+            raise RuntimeErrorKozak("Only arrays can be indexed!")
+        
+        if not isinstance(index, int):
+            raise RuntimeErrorKozak("Array index must be an integer!")
+
+        if index < 0 or index >= len(array):
+            raise RuntimeErrorKozak("Array index out of bounds!")
+
+        return array[index]
+    
+    def _eval_for_each(self, node):
+        array = self.eval(node.array_expr)
+        if not isinstance(array, list):
+            raise RuntimeErrorKozak("Can only iterate over arrays, kozache.")
+        for value in array:
+            self.env[node.var_name] = value
+            for stmt in node.body:
+                self.eval(stmt)
