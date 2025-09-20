@@ -3,8 +3,7 @@
 import re
 from collections import namedtuple
 
-Token = namedtuple(typename='Token', field_names=['type', 'value', 'line', 'column'])
-
+Token = namedtuple(typename='Token', field_names=['type', 'value','line', 'column'])
 
 KEYWORDS = {
     'Hetman': 'Hetman', 
@@ -23,6 +22,8 @@ KEYWORDS = {
     'Yakscho': 'Yakscho',
     'AboYakscho': 'AboYakscho',
     'Inakshe': 'Inakshe',
+    'dovzhyna': 'Dovzhyna',
+    'dorohoyu': 'DOROHOYU'
 }
 
 TOKEN_SPECIFICATION = [
@@ -31,11 +32,13 @@ TOKEN_SPECIFICATION = [
     ('MLCOMMENT', r'/\*.*?\*/'), 
     ('COMMENT', r'//[^\n]*'),
     ('ID', r'[a-zA-Z_][a-zA-Z_0-9]*'),
-    ('OP', r'\+\+|--|&&|\|\||:=|==|!=|>=|<=|//|\^/|\^|[+\-*/=<>]+'),
+    ('OP', r'\+\+|\%|--|&&|\|\||:=|==|!=|>=|<=|//|\^/|\^|[+\-*/=<>]+'),
     ('LPAREN', r'\('),
     ('RPAREN', r'\)'),
     ('LBRACE', r'\{'),  
     ('RBRACE', r'\}'),
+    ('LBRACKET', r'\['),
+    ('RBRACKET', r'\]'),
     ('SEMICOLON', r';'),
     ('COMMA', r','),
     ('SKIP', r'[ \t]+'),
@@ -47,32 +50,24 @@ def lex(code):
     tok_regex = '|'.join(f'(?P<{name}>{pattern})' for name, pattern in TOKEN_SPECIFICATION)
     tok_re = re.compile(tok_regex, re.DOTALL)
 
-    line_num = 1
-    line_start = 0
+
 
     for match in re.finditer(tok_re, code):
         kind = match.lastgroup
         value = match.group()
-        column = match.start() - line_start + 1
+        
+        line_num = code[:match.start()].count('\n') + 1
+        col_num = match.start() - code.rfind('\n', 0, match.start()) if '\n' in code[:match.start()] else match.start() + 1
 
-        if kind == 'NEWLINE':
-            line_num += 1
-            line_start = match.end()
-            continue
-
-        elif kind == 'SKIP' or kind in ('MLCOMMENT', 'COMMENT'):
+        if kind in ('SKIP', 'NEWLINE', 'MLCOMMENT', 'COMMENT'):
             continue
 
         if kind == 'NUMBER':
             value = float(value) if '.' in value else int(value)
-
+            yield Token(kind, value, line_num, col_num)
         elif kind == 'ID':
-            kind = KEYWORDS.get(value, 'ID')
-
-        elif kind == 'STRING':
-            pass  # keep quotes for parser
-
+            yield Token(KEYWORDS.get(value, 'ID'), value, line_num, col_num)
+        elif kind in ('LPAREN', 'RPAREN', 'LBRACE', 'RBRACE', 'LBRACKET', 'RBRACKET', 'SEMICOLON', 'COMMA', 'OP', 'STRING'):
+            yield Token(kind, value, line_num, col_num)
         elif kind == 'MISMATCH':
-            raise SyntaxError(f"Unexpected character {value!r} at line {line_num}, column {column}")
-
-        yield Token(kind, value, line_num, column)
+            raise SyntaxError(f'Unexpected character, kozache: {value!r} at line {line_num}, column {col_num}')
