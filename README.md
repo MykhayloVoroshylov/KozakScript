@@ -6,7 +6,7 @@ The syntax is mostly similar to C++ and Python with a touch of Pascal. However i
 
 This is not a complete version yet — I am still improving it, adding new features, and fixing bugs. Most things are already functional and ready to use, so you can start having fun with it! :)
 
-The "test.kozak" file is used to test the features. Please don't modify it; you can create your own files for experimentation.
+The "test.kozak" file is used to test the features. Please don't modify it; you can create your own files for experimentation (or proffesional development, if you wish to do so :) ).
 
 ___
 
