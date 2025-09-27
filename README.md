@@ -22,4 +22,4 @@ Step 3:
 
 Open Terminal, and type: py main.py [path to the .kozak file] (make sure, you have the extension .kozak at the end of the desired file, otherwise it won't work)
 
-If you find any bugs, make sure that you tell it to me through issues, so that I can correct them if needed
+If you find any bugs, make sure that you tell it to me through issues, so that I can correct them if needed :)
