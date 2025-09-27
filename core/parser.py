@@ -275,6 +275,7 @@ class Parser:
         self.expect('LPAREN')
         expr = self.or_expression()
         self.expect('RPAREN')
+        self.expect('SEMICOLON')
         return KozakTypeCast(tok.type, expr)
     
     def if_statement(self):
@@ -395,3 +396,4 @@ class Parser:
         if self.current_token_index - 1 >= 0:
             return self.tokens[self.current_token_index - 1]
         return None
+
