@@ -61,7 +61,7 @@ Spivaty("After clear:", arr);
 // Функції
 Zavdannya greet(name) {
     Spivaty("Hello,", name);
-    Povernuty Ryadok("Done greeting");
+    Povernuty "Done greeting";
 }
 
 res := greet("Kozak");
@@ -94,4 +94,3 @@ Spivaty("Random value 1-10:", rand_val);
     Comment*/
 
 Spivaty("No Comment");
-
