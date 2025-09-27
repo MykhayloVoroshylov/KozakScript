@@ -34,7 +34,7 @@ Open the folder "KozakScript" in the code editor (I was testing on VS Code)
 
 Open Terminal, and type: py main.py [path to the .kozak file] 
 
-(make sure, you have the extension .kozak at the end of the desired file, otherwise it won't work)
+make sure, you have the extension .kozak at the end of the desired file, otherwise it won't work
 
 ____
 
