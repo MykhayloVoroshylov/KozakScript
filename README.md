@@ -1,5 +1,7 @@
 # KozakScript
 
+test.kozak is used to test the feautures, please no need to modify it, you can make your own file
+
 To run, you need to have python installed.
 
 Step 1:
