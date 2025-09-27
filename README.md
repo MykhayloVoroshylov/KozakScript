@@ -22,7 +22,7 @@ ___
 
 **Step 1**:
 
-Install python from the official website
+Install python from the official website: https://www.python.org
 
 **Step 2**:
 
