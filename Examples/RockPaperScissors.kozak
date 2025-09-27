@@ -1,0 +1,65 @@
+Hetman
+
+player := Slukhai("Enter your play: ");
+computer := randint(1, 3);
+
+Yakscho (computer == 1){
+    computer := Ryadok("rock");
+}
+
+AboYakscho (computer == 2){
+    computer := Ryadok("paper");
+}
+
+Inakshe{
+    computer := Ryadok("scissors");
+}
+
+Yakscho(player == "rock") {
+    Yakscho(computer == "paper"){
+        Spivaty("Computer: " + computer);
+        Spivaty("Computer won!");
+    }
+    AboYakscho(computer == "rock"){
+        Spivaty("Computer: " + computer);
+        Spivaty("Tie");
+    }
+    Inakshe{
+        Spivaty("Computer: " + computer);
+        Spivaty("Player won!");
+    }
+}
+
+AboYakscho(player == "paper"){
+    Yakscho(computer == "paper"){
+        Spivaty("Computer: " + computer);
+        Spivaty("Tie");
+    }
+    AboYakscho(computer == "rock"){
+        Spivaty("Computer: " + computer);
+        Spivaty("Player won!");
+    }
+    Inakshe{
+        Spivaty("Computer: " + computer);
+        Spivaty("Computer won!");
+    }
+}
+
+AboYakscho(player == "scissors"){
+    Yakscho(computer == "paper"){
+        Spivaty("Computer: " + computer);
+        Spivaty("Player won!");
+    }
+    AboYakscho(computer == "rock"){
+        Spivaty("Computer: " + computer);
+        Spivaty("Computer won!");
+    }
+    Inakshe{
+        Spivaty("Computer: " + computer);
+        Spivaty("Tie");
+    }
+}
+
+Inakshe{
+    Spivaty("Invalid entry! Try again!");
+}
