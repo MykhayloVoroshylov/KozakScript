@@ -8,7 +8,7 @@ Install python from the official website
 
 Step 2:
 
-Open the folder "Kozak Script"
+Open the folder "KozakScript" in the code editor (I was testing on VS Code)
 
 Step 3:
 
