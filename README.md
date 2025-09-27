@@ -1,25 +1,42 @@
 # KozakScript
 
-I am a coder enthusiast, who decided to make my own programming language prototype. As a Ukrainian, I found it a very fun idea, to make a language that reflects my culture, and can be used later, if needed, by real programmers, which is why I didn't stop on single HelloWorld program syntax, but went further to make the language actually functional.
+I am a coding enthusiast who decided to make my own programming language prototype. As a Ukrainian, I found it a fun idea, to make a language that reflects my culture, and can be used later, if needed, by real programmers, or as a way for Ukrainian children to have an opportunity, which I personnally never had: to learn programming with terms and words they are more familiar with, which is why I didn't stop on single HelloWorld program syntax, but went further to make the language actually functional.
 
-The syntax is very similar to the one of C++, Python, and a little: Pascal, however it has its own unique features, such as the usage of ukrainian terms for methods, such as Spivaty (sing) for print, or Slukhai (listen) for input. You can view the syntax examples in test.kozak file, or wait a bit, and as soon as I finish the 1.0 version, I will make a .txt file with all the syntax rules, and perhaps the YouTube videos explaining it. Also, you may find examples of programs in the "Examples" folder.
+The syntax is mostly similar to C++ and Python with a touch of Pascal. However it has its own unique features, such as the usage of Ukrainian terms for methods, such as 'Spivaty' (sing) for printing, or 'Slukhai' (listen) for input. You can view the syntax examples in test.kozak file, or wait a bit: once I finish version 1.0, I will provide a .txt file with all the syntax rules, and possibly the YouTube videos explaining it. Additionally, you may find examples of programs in the "Examples" folder.
 
-It is not a complete version yet, I am still improving it, and adding new features, as well as fixing bugs, but most things are already done, and ready to use, so you can already have fun with it :)
+This is not a complete version yet — I am still improving it, adding new features, and fixing bugs. Most things are already functional and ready to use, so you can start having fun with it! :)
 
-test.kozak is used to test the features, please no need to modify it, you can make your own file
+The "test.kozak" file is used to test the features. Please don't modify it; you can create your own files for experimentation.
 
-To run, you need to have python installed.
+___
 
-Step 1:
+### Requirements
+
+1. Python installed on the computer
+
+2. A code editor
+
+___
+
+### How to run
+
+**Step 1**:
 
 Install python from the official website
 
-Step 2:
+**Step 2**:
 
 Open the folder "KozakScript" in the code editor (I was testing on VS Code)
 
-Step 3:
+**Step 3**:
 
-Open Terminal, and type: py main.py [path to the .kozak file] (make sure, you have the extension .kozak at the end of the desired file, otherwise it won't work)
+Open Terminal, and type: py main.py [path to the .kozak file] 
 
-If you find any bugs, make sure that you tell it to me through issues, so that I can correct them if needed :)
+(make sure, you have the extension .kozak at the end of the desired file, otherwise it won't work)
+
+____
+
+### Reporting Bugs
+
+If you find any bugs, please report them via GitHub Issues so I can fix them if needed :)
+
