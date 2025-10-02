@@ -1,4 +1,4 @@
-"""Main.py file for the Kozak programming language."""
+"""Main.py file for the KozakScript programming language."""
 
 import sys
 import re
@@ -61,3 +61,4 @@ if __name__ == '__main__':
     except Exception as e:
         print("Neperedbachena bida! An unexpected error occurred:")
         print_with_hint(str(e))
+
