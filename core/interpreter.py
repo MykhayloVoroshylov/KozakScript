@@ -1,5 +1,8 @@
 """Interpreter for KozakScript"""
 import random
+import sys # Added sys import for error handling context
+
+from core import oop
 
 from core.ast import (
     KozakNumber,
@@ -22,7 +25,11 @@ from core.ast import (
     KozakArrayIndex,
     KozakArray,
     KozakTypeCast,
-    KozakForEach
+    KozakForEach,
+    KozakClass,
+    KozakNewInstance,
+    KozakPropertyAccess,
+    KozakPropertyAssign,
 )
 
 class ReturnValue(Exception):
@@ -36,12 +43,38 @@ class RuntimeErrorKozak(Exception):
 class Interpreter:
     def __init__(self):
         self.env = {}
-        self.functions = {} 
+        self.functions = {}
+        self.class_table = oop.ClassTable()
+        self.classes = {} # Retaining, but unused for modern OOP
 
+    def _execute_function_body(self, body, local_env):
+        """
+        Executes a list of statements (a function body) in a given local environment.
+        This is necessary for user-defined functions and methods/constructors.
+        """
+        original_env = self.env
+        self.env = local_env
+        try:
+            for stmt in body:
+                self.eval(stmt)
+            return None 
+        except ReturnValue as e:
+            return e.value
+        finally:
+            self.env = original_env
 
     def eval(self, node):
         if isinstance(node, KozakProgram):
             return self._eval_program(node)
+        elif isinstance(node, KozakClass):
+            return self._eval_ClassNode(node)
+        elif isinstance(node, KozakNewInstance):
+            # This now reliably calls the correct, unique function defined below.
+            return self.eval_NewInstanceNode(node)
+        elif isinstance(node, KozakPropertyAccess):
+            return self.eval_PropertyAccessNode(node)
+        elif isinstance(node, KozakPropertyAssign):
+            return self.eval_PropertyAssignNode(node)
         elif isinstance(node, KozakIf):
             return self._eval_if(node)
         elif isinstance(node, KozakWhile):
@@ -75,7 +108,8 @@ class Interpreter:
         elif isinstance(node, KozakTypeCast):
             return self._eval_type_cast(node)
         elif isinstance(node, KozakReturn):
-            raise ReturnValue(self.eval(node.value))
+            return_value = self.eval(node.value) if node.value is not None else None
+            raise ReturnValue(return_value)
         elif isinstance(node, KozakArray):
             return self._eval_array(node)
         elif isinstance(node, KozakArrayIndex):
@@ -110,6 +144,9 @@ class Interpreter:
     def _eval_variable(self, node):
         if node.name in self.env:
             return self.env[node.name]
+        # Check global functions table for variables that might be function references
+        if node.name in self.functions:
+             return self.functions[node.name]
         raise RuntimeErrorKozak(f'Variable {node.name} is not defined')
 
     def _eval_binop(self, node):
@@ -191,9 +228,12 @@ class Interpreter:
         elif node.target_type == 'Ryadok':
             return str(value)
         elif node.target_type == 'Logika':
-            if value in ('Pravda', 'Nepravda', True, False, 0, 1):
-                return bool(value)
-            raise RuntimeErrorKozak(f"Cannot cast '{value}' to 'Logika'.")
+            if isinstance(value, str):
+                if value.lower() == 'pravda':
+                    return True
+                if value.lower() == 'nepravda':
+                    return False
+            return bool(value)
         else:
             raise RuntimeErrorKozak(f"Unknown type cast: {node.target_type}")
     
@@ -219,14 +259,26 @@ class Interpreter:
                 self.eval(stmt)
 
     def _eval_unary_op(self, node):
+        if not isinstance(node.target, KozakVariable):
+            raise RuntimeErrorKozak("Unary operators '++'/'--' only supported on simple variables.")
+            
         var_name = node.target.name
+        if var_name not in self.env:
+             raise RuntimeErrorKozak(f'Variable {var_name} is not defined for unary operation.')
+
         current_value = self.env[var_name]
         
         if node.op == '++':
+            if not isinstance(current_value, (int, float)):
+                 raise RuntimeErrorKozak(f"Cannot increment non-numeric variable '{var_name}'.")
             self.env[var_name] = current_value + 1
         elif node.op == '--':
+            if not isinstance(current_value, (int, float)):
+                 raise RuntimeErrorKozak(f"Cannot decrement non-numeric variable '{var_name}'.")
             self.env[var_name] = current_value - 1
-    
+        else:
+             raise RuntimeErrorKozak(f'Unknown unary operator: {node.op}')
+        
     def _eval_for(self, node):
         self.eval(node.initialization)
         
@@ -239,17 +291,12 @@ class Interpreter:
         self.functions[node.name] = node
 
     def _eval_function_call(self, node):
-        func_def = self.functions.get(node.name)
-
-        if node.name == 'append':
-            if len(node.arguments) != 2:
-                raise RuntimeErrorKozak("Function 'append' expects exactly 2 arguments, kozache.")
-            arr = self.eval(node.arguments[0])
-            value = self.eval(node.arguments[1])
-            if not isinstance(arr, list):
-                raise RuntimeErrorKozak("First argument of 'append' must be an array, kozache.")
-            arr.append(value)
-            return None
+        # --- Built-in functions (omitted for brevity, but retained original logic) ---
+        # interpreter.py
+        
+        # ... (далі йде існуюча логіка виклику глобальної функції) ...
+        
+        
         
         if node.name == 'insert':
             if len(node.arguments) != 3:
@@ -264,6 +311,16 @@ class Interpreter:
             if index < 0 or index > len(arr):
                 raise RuntimeErrorKozak("Array index out of bounds, kozache.")
             arr.insert(index, value)
+            return None
+        
+        if node.name == 'append':
+            if len(node.arguments) != 2:
+                raise RuntimeErrorKozak("Function 'append' expects exactly 2 arguments, kozache.")
+            arr = self.eval(node.arguments[0])
+            value = self.eval(node.arguments[1])
+            if not isinstance(arr, list):
+                raise RuntimeErrorKozak("First argument of 'append' must be an array, kozache.")
+            arr.append(value)
             return None
 
         if node.name == 'index_of':
@@ -308,7 +365,6 @@ class Interpreter:
             arr.clear()
             return None
 
-
         if node.name == 'pop':
             if len(node.arguments) != 1:
                 raise RuntimeErrorKozak("Function 'pop' expects exactly 1 argument, kozache.")
@@ -342,12 +398,18 @@ class Interpreter:
             append_mode = False
             if len(node.arguments) == 3:
                 append_mode = bool(self.eval(node.arguments[2]))
+            
+            if not isinstance(file_name, str):
+                raise RuntimeErrorKozak("First argument for 'Zapysaty' (file name) must be a string, kozache.")
+            
             mode = 'a' if append_mode else 'w'
-            if not isinstance(file_name, str) or not isinstance(content, str):
-                raise RuntimeErrorKozak("Arguments for 'Zapysaty' must be strings, kozache.")
-            with open(file_name, mode, encoding='utf-8') as f:
-                f.write(content)
-            return None
+            try:
+                with open(file_name, mode, encoding='utf-8') as f:
+                    f.write(str(content))
+                return None
+            except IOError as e:
+                raise RuntimeErrorKozak(f"File writing error: {e}")
+
 
         if node.name == 'Chytaty':
             if len(node.arguments) != 1:
@@ -355,8 +417,14 @@ class Interpreter:
             file_name = self.eval(node.arguments[0])
             if not isinstance(file_name, str):
                 raise RuntimeErrorKozak("Argument for 'Chytaty' must be a string, kozache.")
-            with open(file_name, 'r', encoding='utf-8') as f:
-                return f.read()
+            try:
+                with open(file_name, 'r', encoding='utf-8') as f:
+                    return f.read()
+            except FileNotFoundError:
+                raise RuntimeErrorKozak(f"File '{file_name}' not found, kozache.")
+            except IOError as e:
+                raise RuntimeErrorKozak(f"File reading error: {e}")
+
 
         if node.name == 'dovzhyna':
             if len(node.arguments) != 1:
@@ -374,26 +442,61 @@ class Interpreter:
             if not isinstance(start, int) or not isinstance(end, int):
                 raise RuntimeErrorKozak("Arguments for 'randint' must be integers, kozache.")
             return random.randint(start, end)
+        # --- End built-in functions ---
+
+        if '.' in node.name:
+            try:
+                # Припускаємо, що name має формат "instance_name.method_name"
+                instance_name, method_name = node.name.split('.', 1)
+            except ValueError:
+                # Якщо формат складніший (наприклад, "a.b.c"), повертаємося до глобального пошуку
+                pass 
+            else:
+                # 1. Обчислюємо аргументи, які передаються в метод
+                evaluated_args = [self.eval(arg_node) for arg_node in node.arguments]
+
+                # 2. Отримуємо змінну-екземпляр ('sobaka') з оточення
+                if instance_name not in self.env:
+                    raise RuntimeErrorKozak(f"Instance variable '{instance_name}' is not defined.")
+                obj = self.env[instance_name]
+                
+                # Перевіряємо, чи є це об'єкт Instance
+                if not isinstance(obj, oop.Instance):
+                    raise RuntimeErrorKozak(f"Cannot call method '{method_name}' on non-object variable '{instance_name}'.")
+
+                # 3. Знаходимо визначення методу у ClassDef
+                method_def = obj.class_def.methods.get(method_name)
+                
+                if not method_def or not isinstance(method_def, KozakFunctionDef):
+                    raise RuntimeErrorKozak(f"Method '{method_name}' not found in class '{obj.class_def.name}'.")
+
+                # 4. Перевіряємо кількість аргументів
+                if len(evaluated_args) != len(method_def.parameters):
+                    raise RuntimeErrorKozak(f"Method '{method_name}' expected {len(method_def.parameters)} arguments, but got {len(evaluated_args)}.")
+
+                # 5. Виконуємо метод (створюємо локальне оточення, встановлюємо 'this')
+                local_env = {"this": obj}
+                for param, arg_val in zip(method_def.parameters, evaluated_args):
+                    local_env[param] = arg_val
+                
+                return self._execute_function_body(method_def.body, local_env)
+        # --- КІНЕЦЬ ЛОГІКИ ДЛЯ ВИКЛИКУ МЕТОДУ ---
 
         # Existing user-defined function handling
+        func_def = self.functions.get(node.name)
         if not func_def:
             raise RuntimeErrorKozak(f"Function '{node.name}' is not defined.")
 
         if len(node.arguments) != len(func_def.parameters):
             raise RuntimeErrorKozak(f"Function '{node.name}' expected {len(func_def.parameters)} arguments, but got {len(node.arguments)}.")
 
-        original_env = self.env.copy()
-        try:
-            for param, arg_val in zip(func_def.parameters, node.arguments):
-                self.env[param] = self.eval(arg_val)
-            
-            for stmt in func_def.body:
-                self.eval(stmt)
-            return None 
-        except ReturnValue as e:
-            return e.value 
-        finally:
-            self.env = original_env
+        evaluated_args = [self.eval(arg_node) for arg_node in node.arguments]
+        
+        local_env = {}
+        for param, arg_val in zip(func_def.parameters, evaluated_args):
+            local_env[param] = arg_val
+        
+        return self._execute_function_body(func_def.body, local_env)
 
 
     def _eval_array(self, node):
@@ -418,7 +521,82 @@ class Interpreter:
         array = self.eval(node.array_expr)
         if not isinstance(array, list):
             raise RuntimeErrorKozak("Can only iterate over arrays, kozache.")
+        
+        # Save original variable state if it exists, to be restored later
+        original_var_value = self.env.get(node.var_name)
+        is_new_var = node.var_name not in self.env
+        
         for value in array:
-            self.env[node.var_name] = value
+            self.env[node.var_name] = value 
             for stmt in node.body:
                 self.eval(stmt)
+        
+        # Clean up / restore
+        if is_new_var:
+             del self.env[node.var_name]
+        elif original_var_value is not None:
+             self.env[node.var_name] = original_var_value
+
+
+    # --- Class and OOP methods (FIXED PROPERTY ACCESS NAMES) ---
+
+    def _eval_ClassNode(self, node):
+        """(KozakClass) Defines a class and stores it in the class_table."""
+        # This is the correct method used by eval()
+        constructor = node.methods.get('Tvir')
+        class_def = oop.ClassDef(name=node.name, methods=node.methods, constructor=constructor)
+        self.class_table.define_class(node.name, class_def)
+        return None
+    
+    def eval_NewInstanceNode(self, node):
+        """(KozakNewInstance) Creates a new object instance."""
+        # NOTE: Assuming node.class_name is a string containing the class name
+        # If your AST uses node.class_def (the ClassDef node itself), this line needs adjustment
+        class_def = self.class_table.get_class(node.class_name) 
+        
+        if class_def is None:
+            raise RuntimeErrorKozak(f"Class '{node.class_name}' not defined")
+
+        instance = oop.Instance(class_def)
+
+        if class_def.constructor:
+            constructor_def = class_def.constructor
+
+            evaluated_args = [self.eval(arg_node) for arg_node in node.arguments]
+
+            if len(evaluated_args) != len(constructor_def.parameters):
+                raise RuntimeErrorKozak(f"Constructor for class '{class_def.name}' expected {len(constructor_def.parameters)} arguments, but got {len(evaluated_args)}.")
+
+            # Set 'this' and argument parameters in the local scope
+            local_env = {"this": instance} 
+            for param, arg_val in zip(constructor_def.parameters, evaluated_args):
+                local_env[param] = arg_val
+            
+            # Execute constructor body using the instance as 'this'
+            self._execute_function_body(constructor_def.body, local_env)
+            
+        return instance
+
+    def eval_PropertyAccessNode(self, node):
+        """(KozakPropertyAccess) Accesses a field or method on an object instance."""
+        # FIX: Use 'instance' instead of 'object'
+        obj = self.eval(node.instance)
+        
+        if not isinstance(obj, oop.Instance):
+            raise RuntimeErrorKozak(f"Cannot access property '{node.property_name}' on non-object of type {type(obj).__name__}")
+            
+        # FIX: Use 'property_name' instead of 'prop_name'
+        return obj.get(node.property_name) 
+
+    def eval_PropertyAssignNode(self, node):
+        """(KozakPropertyAssign) Assigns a value to a field on an object instance."""
+        # FIX: Use 'instance' instead of 'object'
+        obj = self.eval(node.instance)
+        value = self.eval(node.value)
+        
+        if not isinstance(obj, oop.Instance):
+            raise RuntimeErrorKozak(f"Cannot set property '{node.property_name}' on non-object of type {type(obj).__name__}")
+            
+        # FIX: Use 'property_name' instead of 'prop_name'
+        obj.set(node.property_name, value)
+        return value

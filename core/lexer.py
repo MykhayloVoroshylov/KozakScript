@@ -23,7 +23,11 @@ KEYWORDS = {
     'AboYakscho': 'AboYakscho',
     'Inakshe': 'Inakshe',
     'dovzhyna': 'Dovzhyna',
-    'dorohoyu': 'DOROHOYU'
+    'dorohoyu': 'DOROHOYU',
+    'Klas': 'Klas',
+    'Tvir': 'Tvir',
+    'new': 'NEW',
+    'this': 'THIS'
 }
 
 TOKEN_SPECIFICATION = [
@@ -32,6 +36,7 @@ TOKEN_SPECIFICATION = [
     ('MLCOMMENT', r'/\*.*?\*/'), 
     ('COMMENT', r'//[^\n]*'),
     ('ID', r'[a-zA-Z_][a-zA-Z_0-9]*'),
+    ('DOT', r'\.'),
     ('OP', r'\+\+|\%|--|&&|\|\||:=|==|!=|>=|<=|//|\^/|\^|[+\-*/=<>]+'),
     ('LPAREN', r'\('),
     ('RPAREN', r'\)'),
@@ -67,7 +72,7 @@ def lex(code):
             yield Token(kind, value, line_num, col_num)
         elif kind == 'ID':
             yield Token(KEYWORDS.get(value, 'ID'), value, line_num, col_num)
-        elif kind in ('LPAREN', 'RPAREN', 'LBRACE', 'RBRACE', 'LBRACKET', 'RBRACKET', 'SEMICOLON', 'COMMA', 'OP', 'STRING'):
+        elif kind in ('LPAREN', 'RPAREN', 'LBRACE', 'RBRACE', 'LBRACKET', 'RBRACKET', 'SEMICOLON', 'COMMA', 'OP', 'STRING', 'DOT'):
             yield Token(kind, value, line_num, col_num)
         elif kind == 'MISMATCH':
             raise SyntaxError(f'Unexpected character, kozache: {value!r} at line {line_num}, column {col_num}')
