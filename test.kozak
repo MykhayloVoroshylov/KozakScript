@@ -61,7 +61,7 @@ Spivaty("After clear:", arr);
 // Функції
 Zavdannya greet(name) {
     Spivaty("Hello,", name);
-    Povernuty "Done greeting";
+    Povernuty Ryadok("Done greeting");
 }
 
 res := greet("Kozak");
@@ -94,3 +94,18 @@ Spivaty("Random value 1-10:", rand_val);
     Comment*/
 
 Spivaty("No Comment");
+
+// ООП
+Klas Sobaka {
+    Tvir(imya, vik) {
+        this.imya := imya;
+        this.vik := vik;
+    }
+
+    Zavdannya Bark() {
+        Spivaty(this.imya + " woof!");
+    }
+}
+
+sobaka := new Sobaka("Rex", 3);
+sobaka.Bark();
