@@ -1,3 +1,5 @@
+"""Main.py file for the Kozak programming language."""
+
 import sys
 import re
 from core.lexer import lex
@@ -38,6 +40,8 @@ if __name__ == '__main__':
         tokens = list(lex(code))
         parser = Parser(tokens)
         ast = parser.parse()
+
+        tokens = list(lex(code))
 
         if parser.errors:
             print("Bida, kozache! Errors found:")
