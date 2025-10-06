@@ -33,11 +33,8 @@ Klas Rahunok{
     }
 
     Zavdannya Transfer(receiver, amount){
-            // 1. Check if the current account has sufficient funds
             Yakscho(this.balance >= amount){
-                // 2. Withdraw from the current account
                 this.balance := this.balance - amount;
-                // 3. Deposit into the receiver account
                 receiver.balance := receiver.balance + amount;
                 
                 Spivaty("Transfer of " + amount + " successful!");
@@ -89,4 +86,5 @@ Yakscho(contains(klyuchi(accounts), Account)){
         
     }
 }
+
 
