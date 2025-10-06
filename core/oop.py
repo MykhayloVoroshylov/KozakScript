@@ -1,4 +1,4 @@
-# core/oop.py
+"""OOP support for KozakScript."""
 
 class ClassDef:
     """Represents a class definition in KozakScript."""

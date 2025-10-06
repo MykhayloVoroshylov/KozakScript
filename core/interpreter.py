@@ -30,6 +30,8 @@ from core.ast import (
     KozakNewInstance,
     KozakPropertyAccess,
     KozakPropertyAssign,
+    KozakDictionary,
+    KozakDictionaryAccess
 )
 
 class ReturnValue(Exception):
@@ -116,6 +118,10 @@ class Interpreter:
             return self._eval_array_index(node)
         elif isinstance(node, KozakForEach):
             return self._eval_for_each(node)
+        elif isinstance(node, KozakDictionary):
+            return self._eval_dictionary(node)
+        elif isinstance(node, KozakDictionaryAccess):
+            return self._eval_dictionary_access(node)
         else:
             raise RuntimeErrorKozak(f'Unknown node type: {type(node).__name__}')
 
@@ -291,12 +297,6 @@ class Interpreter:
         self.functions[node.name] = node
 
     def _eval_function_call(self, node):
-        # --- Built-in functions (omitted for brevity, but retained original logic) ---
-        # interpreter.py
-        
-        # ... (далі йде існуюча логіка виклику глобальної функції) ...
-        
-        
         
         if node.name == 'insert':
             if len(node.arguments) != 3:
@@ -442,6 +442,33 @@ class Interpreter:
             if not isinstance(start, int) or not isinstance(end, int):
                 raise RuntimeErrorKozak("Arguments for 'randint' must be integers, kozache.")
             return random.randint(start, end)
+        
+        # In _eval_function_call, add these built-in functions:
+
+        if node.name == 'klyuchi':  # keys
+            if len(node.arguments) != 1:
+                raise RuntimeErrorKozak("Function 'klyuchi' expects exactly 1 argument, kozache.")
+            dictionary = self.eval(node.arguments[0])
+            if not isinstance(dictionary, dict):
+                raise RuntimeErrorKozak("Argument must be a dictionary, kozache.")
+            return list(dictionary.keys())
+
+        if node.name == 'znachennya':  # values
+            if len(node.arguments) != 1:
+                raise RuntimeErrorKozak("Function 'znachennya' expects exactly 1 argument, kozache.")
+            dictionary = self.eval(node.arguments[0])
+            if not isinstance(dictionary, dict):
+                raise RuntimeErrorKozak("Argument must be a dictionary, kozache.")
+            return list(dictionary.values())
+
+        if node.name == 'maye_klyuch':  # has_key
+            if len(node.arguments) != 2:
+                raise RuntimeErrorKozak("Function 'maye_klyuch' expects exactly 2 arguments, kozache.")
+            dictionary = self.eval(node.arguments[0])
+            key = self.eval(node.arguments[1])
+            if not isinstance(dictionary, dict):
+                raise RuntimeErrorKozak("First argument must be a dictionary, kozache.")
+            return key in dictionary
         # --- End built-in functions ---
 
         if '.' in node.name:
@@ -515,7 +542,8 @@ class Interpreter:
         if index < 0 or index >= len(array):
             raise RuntimeErrorKozak("Array index out of bounds!")
 
-        return array[index]
+        #return array[index]
+        return self._eval_dictionary_access(node)
     
     def _eval_for_each(self, node):
         array = self.eval(node.array_expr)
@@ -589,14 +617,49 @@ class Interpreter:
         return obj.get(node.property_name) 
 
     def eval_PropertyAssignNode(self, node):
-        """(KozakPropertyAssign) Assigns a value to a field on an object instance."""
-        # FIX: Use 'instance' instead of 'object'
+        """(KozakPropertyAssign) Assigns a value to a field on an object instance OR dictionary key."""
         obj = self.eval(node.instance)
         value = self.eval(node.value)
         
+        # Handle dictionary assignment: dict[key] := value
+        if isinstance(obj, dict):
+            key = self.eval(node.property_name) if not isinstance(node.property_name, (str, int, float)) else node.property_name
+            obj[key] = value
+            return value
+        
+        # Handle object property assignment
         if not isinstance(obj, oop.Instance):
             raise RuntimeErrorKozak(f"Cannot set property '{node.property_name}' on non-object of type {type(obj).__name__}")
             
-        # FIX: Use 'property_name' instead of 'prop_name'
         obj.set(node.property_name, value)
         return value
+
+    def _eval_dictionary(self, node):
+        result = {}
+        for key_node, value_node in node.pairs:
+            key = self.eval(key_node)
+            # Convert key to hashable type if needed
+            if isinstance(key, list):
+                raise RuntimeErrorKozak("Cannot use array as dictionary key, kozache.")
+            value = self.eval(value_node)
+            result[key] = value
+        return result
+
+    def _eval_dictionary_access(self, node):
+        dictionary = self.eval(node.dictionary)
+        key = self.eval(node.key)
+        
+        # Handle both dictionaries and arrays
+        if isinstance(dictionary, dict):
+            if key not in dictionary:
+                raise RuntimeErrorKozak(f"Key '{key}' not found in dictionary, kozache.")
+            return dictionary[key]
+        elif isinstance(dictionary, list):
+            # Keep existing array indexing behavior
+            if not isinstance(key, int):
+                raise RuntimeErrorKozak("Array index must be an integer!")
+            if key < 0 or key >= len(dictionary):
+                raise RuntimeErrorKozak("Array index out of bounds!")
+            return dictionary[key]
+        else:
+            raise RuntimeErrorKozak("Can only index arrays and dictionaries, kozache.")

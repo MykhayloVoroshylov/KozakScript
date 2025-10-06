@@ -46,6 +46,7 @@ TOKEN_SPECIFICATION = [
     ('RBRACKET', r'\]'),
     ('SEMICOLON', r';'),
     ('COMMA', r','),
+    ('COLON', r':'),
     ('SKIP', r'[ \t]+'),
     ('NEWLINE', r'\n'),
     ('MISMATCH', r'.'),
@@ -72,7 +73,7 @@ def lex(code):
             yield Token(kind, value, line_num, col_num)
         elif kind == 'ID':
             yield Token(KEYWORDS.get(value, 'ID'), value, line_num, col_num)
-        elif kind in ('LPAREN', 'RPAREN', 'LBRACE', 'RBRACE', 'LBRACKET', 'RBRACKET', 'SEMICOLON', 'COMMA', 'OP', 'STRING', 'DOT'):
+        elif kind in ('LPAREN', 'RPAREN', 'LBRACE', 'RBRACE', 'LBRACKET', 'RBRACKET', 'SEMICOLON', 'COMMA', 'OP', 'STRING', 'DOT', 'COLON'):
             yield Token(kind, value, line_num, col_num)
         elif kind == 'MISMATCH':
             raise SyntaxError(f'Unexpected character, kozache: {value!r} at line {line_num}, column {col_num}')

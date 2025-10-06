@@ -25,7 +25,9 @@ from core.ast import (
     KozakClass,
     KozakNewInstance,
     KozakPropertyAccess,
-    KozakPropertyAssign
+    KozakPropertyAssign,
+    KozakDictionary,
+    KozakDictionaryAccess
 )
 
 from core.lexer import Token
@@ -124,49 +126,42 @@ class Parser:
         if tok.type in ('ID', 'THIS'):
             next_tok = self.tokens[self.current_token_index + 1] if self.current_token_index + 1 < len(self.tokens) else None
                 
-                # Check for direct assignment: id := value
             is_assignment = next_tok and next_tok.type == 'OP' and next_tok.value == ':='
-                # Check for property access or method call: id.something
             is_dot = next_tok and next_tok.type == 'DOT'
+            is_bracket = next_tok and next_tok.type == 'LBRACKET'  # ADD THIS LINE
                 
             if is_assignment:
                 result = self.assignment()
                 if result is None:
                     return None
+            elif is_bracket:  # ADD THIS BLOCK
+                # Could be dict[key] := value or just dict[key] as expression
+                expr = self.factor()  # This will parse slovnyk[key]
+                next_after = self.peek()
+                if next_after and next_after.type == 'OP' and next_after.value == ':=':
+                    result = self.assignment_from_target(expr)
+                    if result is None:
+                        return None
+                else:
+                    return self.error(tok, f"Unexpected token after indexing at line {tok.line}")
             elif is_dot:
-                    # Parse the full expression (sobaka.Bark or this.imya)
-                expr = self.factor()  # This will parse sobaka.Bark as PropertyAccess
+                expr = self.factor()
                     
-                    # Check what comes next
                 next_after = self.peek()
                 if next_after and next_after.type == 'LPAREN':
-                        # It's a method call: sobaka.Bark()
-                        # expr is KozakPropertyAccess(sobaka, "Bark")
-                        # We need to convert it to a function call
                     if isinstance(expr, KozakPropertyAccess):
                         args = self.function_call_arguments()
-                            # For now, treat method calls as special function calls
-                            # You'll need to handle this in the interpreter
                         result = KozakFunctionCall(f"{expr.instance.name}.{expr.property_name}", args) if isinstance(expr.instance, KozakVariable) else None
                         if result is None:
                             return self.error(tok, "Complex method calls not yet supported")
                     else:
                         return self.error(tok, "Expected property access before ()")
                 elif next_after and next_after.type == 'OP' and next_after.value == ':=':
-                        # It's a property assignment: this.imya := value
                     result = self.assignment_from_target(expr)
                     if result is None:
                         return None
                 else:
                     return self.error(tok, f"Unexpected token after property access at line {tok.line}")
-                # elif next_tok and next_tok.type == 'OP' and next_tok.value in ('++', '--'):
-                #     self.advance()
-                #     self.advance()
-                #     result = KozakUnaryOp(next_tok.value, KozakVariable(tok.value))
-                # elif next_tok and next_tok.type == 'LPAREN':
-                #     result = self.function_call()
-                # else:
-                #     return self.error(tok, f"Unexpected ID token in statement: '{tok.value}' at line {tok.line}, column {tok.column}")
                 
             elif next_tok and next_tok.type == 'OP' and next_tok.value in ('++', '--'):
                 self.advance()
@@ -348,7 +343,8 @@ class Parser:
                 self.advance()
                 index_expr = self.or_expression()
                 self.expect('RBRACKET')
-                node = KozakArrayIndex(node, index_expr)
+                #node = KozakArrayIndex(node, index_expr)
+                node = KozakDictionaryAccess(node, index_expr)
             while self.peek() and self.peek().type == 'DOT':
                 self.advance()
                 prop_name = self.expect('ID').value
@@ -365,6 +361,17 @@ class Parser:
                     elements.append(self.or_expression())
             self.expect('RBRACKET')
             return KozakArray(elements)
+        
+        elif tok.type == 'LBRACE':
+        # Check if this is a dictionary or a block
+        # Look ahead to see if we have key:value syntax
+            next_tok = self.peek_ahead(1)
+            if next_tok and (next_tok.type in ('STRING', 'ID', 'NUMBER') or 
+                            (self.peek_ahead(2) and self.peek_ahead(2).type == 'COLON')):
+                return self.parse_dictionary()
+            else:
+                return self.error(tok, "Unexpected '{' in expression")
+
             
         elif tok.type == 'LPAREN':
             self.advance()
@@ -563,7 +570,34 @@ class Parser:
         expr = self.or_expression()
 
         if isinstance(target, KozakPropertyAccess):
-            # FIX: Use target.instance and target.property_name to align with AST definition
             return KozakPropertyAssign(target.instance, target.property_name, expr)
+        elif isinstance(target, KozakDictionaryAccess):  # ADD THIS
+            # For dict[key] := value, we need special handling
+            # We'll create a special assignment node
+            return KozakPropertyAssign(target.dictionary, target.key, expr)
         elif isinstance(target, KozakVariable):
             return KozakAssign(target.name, expr)
+    
+    def parse_dictionary(self):
+        self.expect('LBRACE')
+        pairs = []
+        
+        if self.peek() and self.peek().type != 'RBRACE':
+            # Parse first key:value pair
+            key = self.or_expression()
+            self.expect('COLON')
+            value = self.or_expression()
+            pairs.append((key, value))
+            
+            # Parse remaining pairs
+            while self.peek() and self.peek().type == 'COMMA':
+                self.advance()
+                if self.peek() and self.peek().type == 'RBRACE':
+                    break  # Trailing comma
+                key = self.or_expression()
+                self.expect('COLON')
+                value = self.or_expression()
+                pairs.append((key, value))
+        
+        self.expect('RBRACE')
+        return KozakDictionary(pairs)
