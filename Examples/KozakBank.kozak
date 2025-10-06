@@ -1,0 +1,95 @@
+Hetman
+
+
+
+
+
+Klas Rahunok{
+
+    Tvir(account, balance){
+
+        this.account := account;
+        this.balance := balance;
+    }
+    Zavdannya Deposit(){
+        deposit := Chyslo(Slukhai("Enter the deposit: "));
+        this.balance := this.balance + deposit;
+        balance := this.balance;
+        Spivaty ("Current funds: " + balance);
+    }
+
+    Zavdannya Withdraw(){
+        withdraw := Chyslo(Slukhai("Enter the amount you wish to withdraw: "));
+        this.balance := this.balance - withdraw;
+        balance := this.balance;
+        Yakscho(balance<0){
+            Spivaty("Insufficient funds to withdraw!");
+            Spivaty("Current funds: " + balance);
+        }
+        Inakshe{
+        Spivaty ("Current funds: " + balance);
+        this.balance := balance;
+        }
+    }
+    
+    Zavdannya CheckBalance(){
+        Spivaty("Current funds for account " + this.account +" is " + this.balance);
+    }
+
+    Zavdannya Transfer(receiver, amount){
+            // 1. Check if the current account has sufficient funds
+            Yakscho(this.balance >= amount){
+                // 2. Withdraw from the current account
+                this.balance := this.balance - amount;
+                // 3. Deposit into the receiver account
+                receiver.balance := receiver.balance + amount;
+                
+                Spivaty("Transfer of " + amount + " successful!");
+                Spivaty("Current funds for account " + this.account +" is " + this.balance);
+                Spivaty("New funds for account " + receiver.account +" is " + receiver.balance);
+            }
+            Inakshe{
+                Spivaty("Insufficient funds to transfer!");
+                Spivaty("Current funds: " + this.balance);
+            }
+        }
+}
+
+Oksana := new Rahunok("Oksana", 500);
+Taras := new Rahunok("Taras", 1000);
+
+accounts := {
+"Oksana" : Oksana,
+"Taras" : Taras
+};
+
+Account := Slukhai("Which account would you like to access: ");
+
+Yakscho(contains(klyuchi(accounts), Account)){
+    current := accounts[Account];
+    Spivaty("Welcome " + current.account);
+    operation := Chyslo(Slukhai("What would you like to do? Deposit(1), Withdraw(2), CheckBalance(3), Transfer(4): "));
+    Yakscho(operation == 1){
+    current.Deposit();
+    }
+    AboYakscho(operation == 2){
+        current.Withdraw();
+    }
+    AboYakscho(operation == 3){
+        current.CheckBalance();
+    }
+    AboYakscho(operation == 4){
+        receiver := Slukhai("Enter the recipient account name: "); 
+        amount := Chyslo(Slukhai("Enter the amount for transfer: ")); 
+        
+        Yakscho(contains(klyuchi(accounts), receiver)){
+        receiver := accounts[receiver];
+        current.Transfer(receiver, amount);
+        }
+        
+        Inakshe{
+            Spivaty("Invalid input");
+        }
+        
+    }
+}
