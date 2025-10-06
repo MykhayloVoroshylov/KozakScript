@@ -1,9 +1,5 @@
 Hetman
 
-
-
-
-
 Klas Rahunok{
 
     Tvir(account, balance){
@@ -93,3 +89,4 @@ Yakscho(contains(klyuchi(accounts), Account)){
         
     }
 }
+
