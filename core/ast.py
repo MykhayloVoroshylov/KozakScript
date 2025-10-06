@@ -116,7 +116,6 @@ class KozakClass:
 class KozakNewInstance:
     class_name: str
     arguments: list = dataclasses.field(default_factory=list)
-    # Ці поля буде заповнювати інтерпретатор, а не парсер
     class_def: object = None 
     properties: dict = dataclasses.field(default_factory=dict)
 
@@ -133,9 +132,9 @@ class KozakPropertyAssign:
 
 @dataclasses.dataclass
 class KozakDictionary:
-    pairs: list  # List of (key, value) tuples
-
+    pairs: list
 @dataclasses.dataclass
 class KozakDictionaryAccess:
     dictionary: object
     key: object
+
