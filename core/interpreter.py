@@ -298,6 +298,16 @@ class Interpreter:
 
     def _eval_function_call(self, node):
         
+        if node.name == 'remove_key':
+            if len(node.arguments) != 2:
+                raise RuntimeErrorKozak("Function 'remove_key' expects exactly 2 arguments (dictionary, key), kozache.")
+            
+            dictionary = self.eval(node.arguments[0])
+            key = self.eval(node.arguments[1])
+            
+            # Call the private helper function you already defined
+            return self._kozak_remove_key(dictionary, key)
+
         if node.name == 'insert':
             if len(node.arguments) != 3:
                 raise RuntimeErrorKozak("Function 'insert' expects exactly 3 arguments, kozache.")
@@ -679,4 +689,15 @@ class Interpreter:
             return dictionary[key]
         else:
             raise RuntimeErrorKozak("Can only index arrays and dictionaries, kozache.")
+    
+    def _kozak_remove_key(self, dictionary, key):
+    # Check if the object is a dictionary
+        if not isinstance(dictionary, dict):
+            raise RuntimeErrorKozak("remove_key() only works on dictionaries, kozache!")
         
+        # Check if the key exists before deleting
+        if key not in dictionary:
+            raise RuntimeErrorKozak(f"Key '{key}' not found in dictionary for removal.")
+            
+        del dictionary[key]
+        return None
