@@ -91,11 +91,11 @@ rand_val := randint(1, 10);
 Spivaty("Random value 1-10:", rand_val);
 
 /* Comment 
-    Comment*/
+    Comment */
 
 Spivaty("No Comment");
 
-// ООП
+// OOP
 Klas Sobaka {
     Tvir(imya, vik) {
         this.imya := imya;
@@ -109,3 +109,34 @@ Klas Sobaka {
 
 sobaka := new Sobaka("Rex", 3);
 sobaka.Bark();
+
+//Словник
+slovnyk := {"imya": "Bohdan", "vik": 30, "misto": "Kyiv"};
+Spivaty(slovnyk["imya"]);
+
+slovnyk["professiya"] := "Hetman";
+Spivaty(slovnyk["professiya"]);
+
+klyuchi_array := klyuchi(slovnyk);
+Spivaty(klyuchi_array);
+
+//Поліморфізм та наслідування
+Klas Parent {
+    Tvir() {
+        this.field1 := "Parent field";
+    }
+    Zavdannya GetField1() {
+        Spivaty("Parent method called!");
+        Povernuty this.field1;
+    }
+}
+
+Klas Child : Parent {
+    Zavdannya GetField2() {
+        Povernuty "Child field";
+    }
+}
+
+my_object := new Child();
+Spivaty(my_object.GetField1());
+Spivaty(my_object.GetField2());
