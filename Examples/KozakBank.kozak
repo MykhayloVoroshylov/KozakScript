@@ -2,10 +2,11 @@ Hetman
 
 Klas Rahunok{
 
-    Tvir(account, balance){
-
+    Tvir(account, balance, type){
         this.account := account;
         this.balance := balance;
+        this.interest_rate := 0.0;
+        this.type := type;
     }
     Zavdannya Deposit(){
         deposit := DroboveChyslo(Slukhai("Enter the deposit: "));
@@ -15,9 +16,16 @@ Klas Rahunok{
     }
 
     Zavdannya Withdraw(){
-        withdraw := DroboveChyslo(Slukhai("Enter the amount you wish to withdraw: "));
-        this.balance := this.balance - withdraw;
+        withdraw := DroboveChyslo(Slukhai("Enter the amount you wish to withdraw (fees apply): "));
+        Yakscho (this.balance<1000){
+            fee := 5;
+        }
+        Inakshe{
+            fee := 0.05 * withdraw;
+        }
+        this.balance := this.balance - withdraw - fee;
         balance := this.balance;
+        Spivaty("Withdrawal successful. The fee of ", fee, " was applied");
         Yakscho(balance<0){
             Spivaty("Insufficient funds to withdraw!");
             this.balance := this.balance + withdraw;
@@ -34,34 +42,171 @@ Klas Rahunok{
     }
 
     Zavdannya Transfer(receiver, amount){
-            Yakscho(this.balance >= amount){
-                this.balance := this.balance - amount;
-                receiver.balance := receiver.balance + amount;
+        Yakscho(this.balance >= amount){
+            fee := 0.03*amount;
+            this.balance := this.balance - amount-fee;
+            receiver.balance := receiver.balance + amount;
                 
-                Spivaty("Transfer of " + amount + " successful!");
-                Spivaty("Current funds for account " + this.account +" is " + this.balance);
-                Spivaty("New funds for account " + receiver.account +" is " + receiver.balance);
-            }
-            Inakshe{
-                Spivaty("Insufficient funds to transfer!");
-                Spivaty("Current funds: " + this.balance);
-            }
+            Spivaty("Transfer of " + amount + " successful!");
+            Spivaty("The fee of ", fee, " was applied");
+            Spivaty("Current funds for account " + this.account +" is " + this.balance);
+            Spivaty("New funds for account " + receiver.account +" is " + receiver.balance);
         }
+        Inakshe{
+            Spivaty("Insufficient funds to transfer!");
+            Spivaty("Current funds: " + this.balance);
+        }
+    }
 }
 
-Oksana := new Rahunok("Oksana", 500.50);
-Taras := new Rahunok("Taras", 1000);
+Klas ZaoshchadnyyRahunok : Rahunok {
+
+    Tvir(account, balance, interest_rate, type){
+        // Initialize inherited properties
+        this.account := account;
+        this.balance := balance;
+        this.interest_rate := interest_rate;
+        this.type := type;
+    }
+
+    Zavdannya ApplyInterest(){
+        interest := this.balance * this.interest_rate;
+        this.balance := this.balance + interest;
+        Spivaty("Interest applied! " + interest + " added to " + this.account);
+        this.CheckBalance();
+    }
+    
+    Zavdannya Withdraw(){
+        withdraw := DroboveChyslo(Slukhai("Enter the amount you wish to withdraw (Savings, fee applies): "));
+        fee := 5.00;
+        amount_to_deduct := withdraw + fee;
+        
+        Yakscho(this.balance >= amount_to_deduct){
+            this.balance := this.balance - amount_to_deduct;
+            Spivaty("Withdrawal successful. A fee of 5.00 was applied.");
+            this.CheckBalance();
+        } 
+        Inakshe {
+            Spivaty("Insufficient funds to withdraw and cover the fee!");
+            this.CheckBalance();
+        }
+    }
+}
+
+
+Klas AdminRahunok : Rahunok {
+    
+    // Constructor (Tvir) - Only needs a name, as its balance is not relevant
+    Tvir(account, password){
+        this.account := account;
+        this.balance := 0.00;
+        this.password := password;
+        //Spivaty("Admin Account '" + this.account + "' created!");
+    }
+
+    Zavdannya AdminLogin(attempted_password){
+        // When you add your Hashing module (Modul Hash), you'll change this line:
+        // Yakscho(Hash.Check(attempted_password, this.password)){...}
+        
+        Yakscho(this.password == attempted_password){
+            Spivaty("✅ SUCCESS: Admin login successful!");
+            Povernuty Pravda; // Return true on success
+        }
+        Inakshe{
+            Spivaty("❌ FAILURE: Invalid password. Access denied.");
+            Povernuty Nepravda; // Return false on failure
+        }
+    }
+
+    Zavdannya GetTotalBankBalance(account_list){
+        total := 0.00;
+        
+        Spivaty("--- Admin Action: Calculating Total Bank Balance ---");
+        
+        Dlya account dorohoyu account_list {
+            total := total + account.balance;
+        }
+        
+        Spivaty("✅ SUCCESS: Total funds across " + dovzhyna(account_list) + " accounts is: " + total);
+        Povernuty total;
+    }
+
+    // New Admin Method 2: Apply Interest to all Savings Accounts
+    Zavdannya ApplyInterestToAll(account_list) {
+        Spivaty("--- Admin Action: Applying Interest to All Eligible Accounts ---");
+        applied_count := 0;
+
+        Dlya account dorohoyu account_list {
+
+            Yakscho(account.interest_rate > 0){ // Simple check: does the account have an interest_rate > 0?
+                Spivaty("  -> Applying interest to: " + account.account);
+                account.ApplyInterest(); // This calls the ApplyInterest method on the savings account object
+                applied_count++;
+            }
+        }
+        Spivaty("✅ SUCCESS: Interest applied to " + applied_count + " savings accounts.");
+    }
+
+    Zavdannya DodatyRahunok(all_accounts, new_account_name, new_account_object){
+        Yakscho(contains(klyuchi(all_accounts), new_account_name)){
+            Spivaty("❌ FAILURE: Account '" + new_account_name + "' already exists!");
+            Povernuty Nepravda;
+        }
+        Inakshe{
+            all_accounts[new_account_name] := new_account_object;
+            Spivaty("✅ SUCCESS: Account '" + new_account_name + "' has been added to the bank.");
+            Povernuty Pravda;
+        }
+    }
+
+    Zavdannya VydalytyRahunok(accounts, account_name){
+        Yakscho(contains(klyuchi(accounts), account_name)){
+            remove_key(accounts, account_name); 
+            Spivaty("✅ SUCCESS: Account '" + account_name + "' has been permanently removed.");
+            Povernuty Pravda;
+        }
+        Inakshe{
+            Spivaty("❌ FAILURE: Account '" + account_name + "' not found.");
+            Povernuty Nepravda;
+        }
+    }
+
+    Zavdannya CheckAccounts(all_accounts){
+        Dlya account dorohoyu all_accounts {
+        Spivaty("Account Name in Array: " + account.account);
+        Spivaty("Account Balance: " + account.balance);
+        Spivaty("Account Type: " + account.type);
+        Yakscho(account.type == "Savings"){
+            Spivaty("Interest rate for the account: ", account.interest_rate*100, "%");
+        }
+        }
+    }
+}
+
+
+
+Admin := new AdminRahunok("Admin", "Password");
+
+Oksana := new Rahunok("Oksana", 500.50, "Chequing");
+Taras := new Rahunok("Taras", 1000, "Chequing");
+Ivan := new ZaoshchadnyyRahunok("Ivan", 2500.0, 0.05, "Savings");
+Mariya := new ZaoshchadnyyRahunok("Mariya", 500.0, 0.02, "Savings");
 
 accounts := {
 "Oksana" : Oksana,
-"Taras" : Taras
+"Taras" : Taras,
+"Ivan" : Ivan,
+"Mariya" : Mariya
 };
+
+all_accounts := [Oksana, Ivan, Taras, Mariya];
+
 
 Account := Slukhai("Which account would you like to access: ");
 
 Yakscho(contains(klyuchi(accounts), Account)){
     current := accounts[Account];
-    Spivaty("Welcome " + current.account);
+    Spivaty("Welcome " + current.account + " (" + current.type + ")");
     operation := Chyslo(Slukhai("What would you like to do? Deposit(1), Withdraw(2), CheckBalance(3), Transfer(4): "));
     Yakscho(operation == 1){
     current.Deposit();
@@ -73,17 +218,111 @@ Yakscho(contains(klyuchi(accounts), Account)){
         current.CheckBalance();
     }
     AboYakscho(operation == 4){
-        receiver := Slukhai("Enter the recipient account name: "); 
-        amount := DroboveChyslo(Slukhai("Enter the amount for transfer: ")); 
+        receiver := Slukhai("Enter the recipient account name: ");
         
-        Yakscho(contains(klyuchi(accounts), receiver)){
-        receiver := accounts[receiver];
-        current.Transfer(receiver, amount);
+        Yakscho(receiver == current.account){
+            Spivaty("You cannot transfer money to yourself");
         }
+
+        AboYakscho(receiver != current.account){
         
+            Yakscho(contains(klyuchi(accounts), receiver)){
+                amount := DroboveChyslo(Slukhai("Enter the amount for transfer (fee of 3% apply): ")); 
+                receiver := accounts[receiver];
+                current.Transfer(receiver, amount);
+            }
+            Inakshe{
+                Spivaty("Invalid input");
+            }
+        }
+    }
+}
+
+
+Yakscho(Account == "Admin"){
+Spivaty("--- TESTING SUCCESSFUL LOGIN ---");
+attempt_pass := Slukhai("Enter Password for the account: ");
+
+login_status := Admin.AdminLogin(attempt_pass);
+
+Yakscho(login_status == Pravda){
+    Spivaty("Login Status OK:", login_status);
+    Access := Pravda;
+}
+Inakshe {
+    Spivaty("Login Status FAIL:", login_status);
+}
+
+Yakscho (Access == Pravda){
+    operation := Slukhai("What would you like to do? Get total Balance for the Bank(1), Apply interest to all accounts (2), Add account (3), Delete account(4), Check Accounts (5): ");
+    Yakscho (operation == "1"){
+        Admin.GetTotalBankBalance(all_accounts);
+    }
+    
+    AboYakscho (operation == "2"){
+        Admin.ApplyInterestToAll(all_accounts);
+    }
+    
+    AboYakscho (operation == "3"){
+        name := Slukhai("Enter the new account name: ");
+        initial_deposit := DroboveChyslo(Slukhai("Enter the initial deposit for the account: "));
+        type := Slukhai("What type of account? Chequing(1), Savings(2): ");
+        interest_rate := 0;
+
+        Yakscho(type == "1"){
+            type := "Chequing";
+            obj := new Rahunok(name, initial_deposit, type);
+        }
+        AboYakscho(type == "2"){
+            type := "Savings";
+            Yakscho (initial_deposit<1000.0){
+                interest_rate := 0.02;
+            }
+            AboYakscho (initial_deposit>=1000.0){
+                interest_rate := 0.05;
+            }
+            obj := new ZaoshchadnyyRahunok(name, initial_deposit, interest_rate, type);
+        }
+
+        Admin.DodatyRahunok(accounts, name, obj);
+
+        append(all_accounts, obj);
+
+        Yakscho(contains(klyuchi(accounts), name)){
+            Spivaty("✅ Verification: 'Stepan' is in the dictionary.");
+        }
         Inakshe{
-            Spivaty("Invalid input");
+            Spivaty("❌ Verification: 'Stepan' is missing from the dictionary.");
         }
+        // Check the object's balance
+        Spivaty("Stepan's Balance:", accounts["Stepan"].balance);
+
+        Admin.CheckAccounts(all_accounts);
         
     }
+    AboYakscho(operation == "4"){
+        account_to_delete := Slukhai("Enter the name of account to be deleted: ");
+        index_account_delete := index_of(all_accounts, account_to_delete);
+        delete_status := Admin.VydalytyRahunok(accounts, account_to_delete);
+    
+        Yakscho(delete_status == Pravda){            
+            new_all_accounts := [];
+
+            Dlya account dorohoyu all_accounts {
+                
+                Yakscho(account.account != account_to_delete){
+                    append(new_all_accounts, account); // Keep the object
+                }
+            }
+            
+            all_accounts := new_all_accounts;
+            
+        }
+        Admin.CheckAccounts(all_accounts);
+    }
+
+    AboYakscho(operation == "5"){
+        Admin.CheckAccounts(all_accounts);
+    }
+}
 }
