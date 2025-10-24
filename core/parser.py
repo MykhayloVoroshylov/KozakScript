@@ -160,8 +160,12 @@ class Parser:
                     result = self.assignment_from_target(expr)
                     if result is None:
                         return None
+                elif isinstance(expr, KozakFunctionCall):
+                    # Method call was already parsed in factor()
+                    result = expr
                 else:
                     return self.error(tok, f"Unexpected token after property access at line {tok.line}")
+
                 
             elif next_tok and next_tok.type == 'OP' and next_tok.value in ('++', '--'):
                 self.advance()
@@ -343,13 +347,20 @@ class Parser:
                 self.advance()
                 index_expr = self.or_expression()
                 self.expect('RBRACKET')
-                #node = KozakArrayIndex(node, index_expr)
                 node = KozakDictionaryAccess(node, index_expr)
             while self.peek() and self.peek().type == 'DOT':
                 self.advance()
                 prop_name = self.expect('ID').value
                 node = KozakPropertyAccess(node, prop_name)
+                
+                # Check if this property access is followed by a method call
+                if self.peek() and self.peek().type == 'LPAREN':
+                    arguments = self.function_call_arguments()
+                    # Convert property access to method call
+                    if isinstance(node, KozakPropertyAccess) and isinstance(node.instance, KozakVariable):
+                        node = KozakFunctionCall(f"{node.instance.name}.{node.property_name}", arguments)
             return node
+
         
         elif tok.type == 'LBRACKET':
             self.advance()
@@ -525,7 +536,21 @@ class Parser:
     
     def class_def(self):
         self.expect('Klas')
-        class_name = self.expect('ID').value
+        class_name_token = self.expect('ID')
+        if not class_name_token:
+            return None  # Error already recorded by expect()
+        
+        class_name = class_name_token.value
+        parent_name = None
+
+        if self.peek() and self.peek().type == 'COLON':
+            self.advance()
+
+            parent_token = self.expect('ID')
+            if not parent_token:
+                return None
+            parent_name = parent_token.value
+
         self.expect('LBRACE')
 
         methods = {}
@@ -557,7 +582,7 @@ class Parser:
                 self.advance()
 
         self.expect('RBRACE')
-        return KozakClass(class_name, methods, constructor)
+        return KozakClass(name = class_name, methods = methods, constructor = constructor, parent_name=parent_name)
     
     def assignment_from_target(self, target):
         """Handle assignment when we've already parsed the left-hand side"""

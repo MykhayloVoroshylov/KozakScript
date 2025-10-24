@@ -111,11 +111,13 @@ class KozakClass:
     name: str
     methods: dict
     constructor: object = None
+    parent_name: str = None
 
 @dataclasses.dataclass
 class KozakNewInstance:
     class_name: str
     arguments: list = dataclasses.field(default_factory=list)
+    # Ці поля буде заповнювати інтерпретатор, а не парсер
     class_def: object = None 
     properties: dict = dataclasses.field(default_factory=dict)
 
@@ -130,11 +132,19 @@ class KozakPropertyAssign:
     property_name: str
     value: object
 
+# In ast.py
+
+@dataclasses.dataclass
+class KozakMethodCall:
+    instance: object    # The object (e.g., KozakVariable('my_object'))
+    method_name: str
+    arguments: list = dataclasses.field(default_factory=list)
+
 @dataclasses.dataclass
 class KozakDictionary:
-    pairs: list
+    pairs: list  # List of (key, value) tuples
+
 @dataclasses.dataclass
 class KozakDictionaryAccess:
     dictionary: object
     key: object
-

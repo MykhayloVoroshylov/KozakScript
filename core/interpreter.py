@@ -492,10 +492,11 @@ class Interpreter:
                     raise RuntimeErrorKozak(f"Cannot call method '{method_name}' on non-object variable '{instance_name}'.")
 
                 # 3. Знаходимо визначення методу у ClassDef
-                method_def = obj.class_def.methods.get(method_name)
+                method_def = obj.class_def.find_method(method_name)
                 
                 if not method_def or not isinstance(method_def, KozakFunctionDef):
                     raise RuntimeErrorKozak(f"Method '{method_name}' not found in class '{obj.class_def.name}'.")
+
 
                 # 4. Перевіряємо кількість аргументів
                 if len(evaluated_args) != len(method_def.parameters):
@@ -571,10 +572,21 @@ class Interpreter:
     def _eval_ClassNode(self, node):
         """(KozakClass) Defines a class and stores it in the class_table."""
         # This is the correct method used by eval()
+
+        parent_class_def = None
+
+        if node.parent_name: 
+            try:
+                parent_class_def = self.class_table.get_class(node.parent_name)
+            except Exception:
+                raise RuntimeErrorKozak(f"Parent class '{node.parent_name}' not defined for class '{node.name}'.")
+            
+
+
         constructor = node.methods.get('Tvir')
-        class_def = oop.ClassDef(name=node.name, methods=node.methods, constructor=constructor)
+        class_def = oop.ClassDef(name=node.name, methods=node.methods, constructor=constructor, parent_class = parent_class_def)
         self.class_table.define_class(node.name, class_def)
-        return None
+        return class_def
     
     def eval_NewInstanceNode(self, node):
         """(KozakNewInstance) Creates a new object instance."""
@@ -587,8 +599,12 @@ class Interpreter:
 
         instance = oop.Instance(class_def)
 
-        if class_def.constructor:
-            constructor_def = class_def.constructor
+        constructor_def = class_def.constructor
+
+        if not constructor_def and class_def.parent_class:
+            constructor_def = class_def.parent_class.constructor
+
+        if constructor_def:
 
             evaluated_args = [self.eval(arg_node) for arg_node in node.arguments]
 
@@ -663,3 +679,4 @@ class Interpreter:
             return dictionary[key]
         else:
             raise RuntimeErrorKozak("Can only index arrays and dictionaries, kozache.")
+        

@@ -2,10 +2,22 @@
 
 class ClassDef:
     """Represents a class definition in KozakScript."""
-    def __init__(self, name, methods, constructor=None):
+    def __init__(self, name, methods, constructor=None, parent_class=None):
         self.name = name
         self.methods = methods  # dict: method_name -> method_node
         self.constructor = constructor  # Node for Tvir (constructor) if exists
+        self.parent_class = parent_class  # ClassDef of parent class if inheritance is used
+
+    def find_method(self, name):
+        """Recursively search for a method in the class or its ancestors."""
+        if name in self.methods:
+            return self.methods[name]
+        
+        # Recurse up the inheritance chain
+        if self.parent_class:
+            return self.parent_class.find_method(name)
+            
+        return None
 
 class Instance:
     """Represents an object instance."""
@@ -17,11 +29,17 @@ class Instance:
         # First check instance fields
         if name in self.fields:
             return self.fields[name]
+        
+        method_node = self.class_def.find_method(name)
         # Then check methods
-        if name in self.class_def.methods:
-            method_node = self.class_def.methods[name]
-            # Return a callable bound to this instance
+
+        if method_node:
             return lambda *args: method_node.eval(self, *args)
+
+        # if name in self.class_def.methods:
+        #     method_node = self.class_def.methods[name]
+        #     # Return a callable bound to this instance
+        #     return lambda *args: method_node.eval(self, *args)
         raise RuntimeError(f"Property or method '{name}' not found in instance of {self.class_def.name}")
 
     def set(self, name, value):
