@@ -105,8 +105,7 @@ Klas AdminRahunok : Rahunok {
     }
 
     Zavdannya AdminLogin(attempted_password){
-        // When you add your Hashing module (Modul Hash), you'll change this line:
-        // Yakscho(Hash.Check(attempted_password, this.password)){...}
+       //Password hashing to come
         
         Yakscho(this.password == attempted_password){
             Spivaty("✅ SUCCESS: Admin login successful!");
@@ -326,3 +325,4 @@ Yakscho (Access == Pravda){
     }
 }
 }
+
