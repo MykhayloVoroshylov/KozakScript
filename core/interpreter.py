@@ -423,7 +423,7 @@ class Interpreter:
             return None
 
         
-        if node.name == 'Zapysaty':
+        if node.name == 'Zapysaty' or node.name == 'Write':
             if len(node.arguments) < 2 or len(node.arguments) > 3:
                 raise RuntimeErrorKozak("Function 'Zapysaty' expects 2 or 3 arguments, kozache.")
             file_name = self.eval(node.arguments[0])
@@ -444,7 +444,7 @@ class Interpreter:
                 raise RuntimeErrorKozak(f"File writing error: {e}")
 
 
-        if node.name == 'Chytaty':
+        if node.name == 'Chytaty' or node.name == 'Read':
             if len(node.arguments) != 1:
                 raise RuntimeErrorKozak("Function 'Chytaty' expects exactly 1 argument, kozache.")
             file_name = self.eval(node.arguments[0])
@@ -459,7 +459,7 @@ class Interpreter:
                 raise RuntimeErrorKozak(f"File reading error: {e}")
 
 
-        if node.name == 'dovzhyna':
+        if node.name == 'dovzhyna' or node.name == 'length':
             if len(node.arguments) != 1:
                 raise RuntimeErrorKozak("Function 'dovzhyna' expects exactly 1 argument, kozache.")
             arg = self.eval(node.arguments[0])
@@ -478,7 +478,7 @@ class Interpreter:
         
         # In _eval_function_call, add these built-in functions:
 
-        if node.name == 'klyuchi':  # keys
+        if node.name == 'klyuchi' or node.name == 'keys':  # keys
             if len(node.arguments) != 1:
                 raise RuntimeErrorKozak("Function 'klyuchi' expects exactly 1 argument, kozache.")
             dictionary = self.eval(node.arguments[0])
@@ -486,7 +486,7 @@ class Interpreter:
                 raise RuntimeErrorKozak("Argument must be a dictionary, kozache.")
             return list(dictionary.keys())
 
-        if node.name == 'znachennya':  # values
+        if node.name == 'znachennya' or node.name == 'values':  # values
             if len(node.arguments) != 1:
                 raise RuntimeErrorKozak("Function 'znachennya' expects exactly 1 argument, kozache.")
             dictionary = self.eval(node.arguments[0])
@@ -494,7 +494,7 @@ class Interpreter:
                 raise RuntimeErrorKozak("Argument must be a dictionary, kozache.")
             return list(dictionary.values())
 
-        if node.name == 'maye_klyuch':  # has_key
+        if node.name == 'maye_klyuch' or node.name == 'has_key':  # has_key
             if len(node.arguments) != 2:
                 raise RuntimeErrorKozak("Function 'maye_klyuch' expects exactly 2 arguments, kozache.")
             dictionary = self.eval(node.arguments[0])
