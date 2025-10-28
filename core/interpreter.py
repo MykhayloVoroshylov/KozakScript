@@ -1,6 +1,6 @@
 """Interpreter for KozakScript"""
 import random
-import sys # Added sys import for error handling context
+import sys 
 
 from core import oop
 
@@ -31,7 +31,10 @@ from core.ast import (
     KozakPropertyAccess,
     KozakPropertyAssign,
     KozakDictionary,
-    KozakDictionaryAccess
+    KozakDictionaryAccess,
+    KozakThrow,
+    KozakTry,
+    KozakExit
 )
 
 class ReturnValue(Exception):
@@ -42,12 +45,18 @@ class RuntimeErrorKozak(Exception):
     def __init__(self, message):
         super().__init__(message)
 
+class ProgramExit(Exception):
+    def __init__(self, code=0):
+        self.code = code
+        super().__init__(f"Program exited with code {code}")
+
 class Interpreter:
     def __init__(self):
         self.env = {}
         self.functions = {}
         self.class_table = oop.ClassTable()
-        self.classes = {} # Retaining, but unused for modern OOP
+        self.classes = {} 
+        self.exit_code = 0
 
     def _execute_function_body(self, body, local_env):
         """
@@ -122,6 +131,12 @@ class Interpreter:
             return self._eval_dictionary(node)
         elif isinstance(node, KozakDictionaryAccess):
             return self._eval_dictionary_access(node)
+        elif isinstance(node, KozakTry):
+            return self._eval_try(node)
+        elif isinstance(node, KozakThrow):
+            return self._eval_throw(node)
+        elif isinstance(node, KozakExit):
+            return self._eval_exit(node)
         else:
             raise RuntimeErrorKozak(f'Unknown node type: {type(node).__name__}')
 
@@ -691,13 +706,92 @@ class Interpreter:
             raise RuntimeErrorKozak("Can only index arrays and dictionaries, kozache.")
     
     def _kozak_remove_key(self, dictionary, key):
-    # Check if the object is a dictionary
         if not isinstance(dictionary, dict):
             raise RuntimeErrorKozak("remove_key() only works on dictionaries, kozache!")
         
-        # Check if the key exists before deleting
         if key not in dictionary:
             raise RuntimeErrorKozak(f"Key '{key}' not found in dictionary for removal.")
             
         del dictionary[key]
         return None
+    
+    def _eval_try(self, node):
+        exception_caught = None
+        exception_value = None
+
+        try:
+            for stmt in node.try_body:
+                self.eval(stmt)
+        except RuntimeErrorKozak as e:
+            exception_caught = True
+            exception_value = str(e)
+
+            if node.catch_clauses:
+                exception_var, catch_body = node.catch_clauses[0]
+
+                if exception_var:
+                    original_value = self.env.get(exception_var)
+                    self.env[exception_var] = exception_value
+
+                try:
+                    for stmt in catch_body:
+                        self.eval(stmt)
+                
+                finally: 
+                    if exception_var:
+                        if original_value is not None:
+                            self.env[exception_var] = original_value
+                        elif exception_var in self.env:
+                            del self.env[exception_var]
+            else:
+                raise
+
+        except Exception as e:
+            exception_caught = True
+            exception_value = str(e)
+            if node.catch_clauses:
+                exception_var, catch_body = node.catch_clauses[0]
+
+                if exception_var:
+                    original_value = self.env.get(exception_var)
+                    self.env[exception_var] = exception_value
+                
+                try:
+                    for stmt in catch_body:
+                        self.eval(stmt)
+                
+                finally:
+                    if exception_var:
+                        if original_value is not None:
+                            self.env[exception_var] = original_value
+                        elif exception_var in self.env:
+                            del self.env[exception_var]
+            else:
+                raise
+
+        finally:
+            if node.finally_body:
+                for stmt in node.finally_body:
+                    self.eval(stmt)
+
+    def _eval_throw(self, node):
+        message = self.eval(node.message)
+        raise RuntimeErrorKozak(str(message))
+    
+    def _eval_exit(self,node):
+        if node.code is None:
+            exit_code = 0
+        else:
+            exit_code = self.eval(node.code)
+
+            if not isinstance(exit_code, int):
+                try:
+                    exit_code = int(exit_code)
+                except (ValueError, TypeError):
+                    raise RuntimeErrorKozak(f"Exit code must be an integer, got {type(exit_code).__name__}")
+            
+            if exit_code < 0 or exit_code > 255:
+                raise RuntimeErrorKozak("Exit code must be between 0 and 255, kozache.")
+        self.exit_code = exit_code
+        raise ProgramExit(exit_code)
+    

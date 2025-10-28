@@ -27,7 +27,12 @@ KEYWORDS = {
     'Klas': 'Klas',
     'Tvir': 'Tvir',
     'new': 'NEW',
-    'this': 'THIS'
+    'this': 'THIS',
+    'Sprobuy': 'Sprobuy',
+    'Piymat': 'Piymat',          
+    'Vkintsi': 'Vkintsi',        
+    'Kydaty': 'Kydaty',
+    'Vykhid' : 'Vykhid'
 }
 
 TOKEN_SPECIFICATION = [

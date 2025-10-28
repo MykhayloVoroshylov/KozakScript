@@ -27,7 +27,10 @@ from core.ast import (
     KozakPropertyAccess,
     KozakPropertyAssign,
     KozakDictionary,
-    KozakDictionaryAccess
+    KozakDictionaryAccess,
+    KozakTry,
+    KozakThrow,
+    KozakExit
 )
 
 from core.lexer import Token
@@ -123,6 +126,15 @@ class Parser:
             return self.function_def()
         
         result = None
+
+        if tok.type == 'Sprobuy':
+            return self.try_statement()
+        elif tok.type == 'Kydaty':
+            return self.throw_statement()
+        
+        if tok.type == 'Vykhid':
+            return self.exit_statement()
+
         if tok.type in ('ID', 'THIS'):
             next_tok = self.tokens[self.current_token_index + 1] if self.current_token_index + 1 < len(self.tokens) else None
                 
@@ -626,3 +638,52 @@ class Parser:
         
         self.expect('RBRACE')
         return KozakDictionary(pairs)
+    
+    def try_statement(self):
+        self.expect('Sprobuy')
+        self.expect('LBRACE')
+        try_body = self.block()
+
+        catch_clauses = []
+
+        while self.peek() and self.peek().type == 'Piymat':
+            self.advance()
+            self.expect('LPAREN')
+
+            exception_var = None
+            if self.peek() and self.peek().type == 'ID':
+                exception_var = self.expect('ID').value
+            
+            self.expect('RPAREN')
+            self.expect('LBRACE')
+            catch_body = self.block()
+
+            catch_clauses.append((exception_var, catch_body))
+
+            finally_body = None
+            if self.peek() and self.peek().type == 'Vkintsi':
+                self.advance()
+                self.expect('LBRACE')
+                finally_body = self.block()
+
+            return KozakTry(try_body, catch_clauses, finally_body)
+    
+    def throw_statement(self):
+        self.expect('Kydaty')
+        self.expect('LPAREN')
+        message = self.or_expression()
+        self.expect('RPAREN')
+        self.expect('SEMICOLON')
+        return KozakThrow(message)
+    
+    def exit_statement(self):
+        self.expect('Vykhid')
+
+        code = None
+        if self.peek() and self.peek().type == 'LPAREN':
+            self.expect('LPAREN')
+            code = self.or_expression()
+            self.expect('RPAREN')
+        
+        self.expect('SEMICOLON')
+        return KozakExit(code)
