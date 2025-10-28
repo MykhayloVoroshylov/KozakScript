@@ -68,7 +68,7 @@ res := greet("Kozak");
 Spivaty("Greet returned:", res);
 
 // Робота з файлами
-Zapysaty("test.txt", "Hello Kozak!\n");
+Zapysaty("test.txt", "Hello Kozak!"); // <---- Here
 content := Chytaty("test.txt");
 Spivaty("File content:", content);
 
@@ -138,5 +138,107 @@ Klas Child : Parent {
 }
 
 my_object := new Child();
-Spivaty(my_object.GetField1());
-Spivaty(my_object.GetField2());
+// These two lines are now simple statements that should require semicolons:
+Spivaty(my_object.GetField1()); // Line 20 - Test inheritance (should print Parent method called! Parent field)
+Spivaty(my_object.GetField2()); // Line 21 - Test polymorphism (should print Child field)
+
+
+
+// Test 1
+Sprobuy{
+    x:= 10;
+    y := 0;
+    res := x/y;
+    Spivaty("Res= ");
+} Piymat(e){
+    Spivaty("Error: ", e);
+}
+
+// Test 2
+Sprobuy{
+    arr2 := [1, 2, 3];
+    Spivaty(arr[10]);
+} Piymat(error_msg){
+    Spivaty("Caught error: ", error_msg);
+}
+
+// Test 3
+counter := 0;
+
+Sprobuy {
+    counter := counter + 1;
+    Spivaty("In try block, counter: ", counter);
+    Kydaty("Custom error message!");
+} Piymat(e){
+    counter := counter + 1;
+    Spivaty("In catch block, counter:", counter);
+    Spivaty("Error", e);
+} Vkintsi{
+    counter := counter + 1;
+    Spivaty("In finally block, counter:", counter);
+    Spivaty("This always runs!");
+}
+Spivaty("Final counter:", counter);
+
+// Test 4
+Sprobuy {
+    Spivaty("Outer try");
+    
+    Sprobuy {
+        Spivaty("Inner try");
+        Kydaty("Inner error");
+    } Piymat(e) {
+        Spivaty("Inner catch:", e);
+        Kydaty("Re-throwing from inner catch");
+    }
+    
+} Piymat(e) {
+    Spivaty("Outer catch:", e);
+}
+
+// Test 5
+Zavdannya safeDivide(a, b) {
+    Sprobuy {
+        Yakscho(b == 0) {
+            Kydaty("Cannot divide by zero, kozache!");
+        }
+        Povernuty a / b;
+    } Piymat(e) {
+        Spivaty("Division error:", e);
+        Povernuty 0;
+    }
+}
+
+result1 := safeDivide(10, 2);
+Spivaty("10 / 2 =", result1);
+
+result2 := safeDivide(10, 0);
+Spivaty("10 / 0 =", result2);
+
+// Test 6
+Sprobuy {
+    content := Chytaty("nonexistent.txt");
+    Spivaty(content);
+} Piymat(e) {
+    Spivaty("File error:", e);
+    Spivaty("Creating default file...");
+    Zapysaty("nonexistent.txt", "Default content");
+}
+
+// Test 7
+Zavdannya safeArrayAccess(arr, index) {
+    Sprobuy {
+        Povernuty arr[index];
+    } Piymat(e) {
+        Spivaty("Array access error:", e);
+    } Vkintsi {
+        Spivaty("Array access attempted");
+    }
+}
+
+my_arr := [10, 20, 30];
+val1 := safeArrayAccess(my_arr, 1);
+Spivaty("Value at index 1:", val1);
+
+val2 := safeArrayAccess(my_arr, 10);
+Spivaty("Value at index 10:", val2);
