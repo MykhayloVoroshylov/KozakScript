@@ -30,7 +30,8 @@ from core.ast import (
     KozakDictionaryAccess,
     KozakTry,
     KozakThrow,
-    KozakExit
+    KozakExit,
+    KozakImport
 )
 
 from core.lexer import Token
@@ -134,6 +135,9 @@ class Parser:
         
         if tok.type == 'Vykhid':
             return self.exit_statement()
+        
+        if tok.type == 'Importuvaty':
+            return self.import_statement()
 
         if tok.type in ('ID', 'THIS'):
             next_tok = self.tokens[self.current_token_index + 1] if self.current_token_index + 1 < len(self.tokens) else None
@@ -687,3 +691,11 @@ class Parser:
         
         self.expect('SEMICOLON')
         return KozakExit(code)
+    
+    def import_statement(self):
+        self.expect('Importuvaty')
+        self.expect('LPAREN')
+        file_path_expr = self.or_expression()
+        self.expect('RPAREN')
+        self.expect('SEMICOLON')
+        return KozakImport(file_path_expr)

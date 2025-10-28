@@ -159,3 +159,7 @@ class KozakThrow:
 @dataclasses.dataclass
 class KozakExit:
     code: object = None
+
+@dataclasses.dataclass
+class KozakImport:
+    file_path: object

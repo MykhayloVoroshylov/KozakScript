@@ -1,6 +1,9 @@
 """Interpreter for KozakScript"""
 import random
 import sys 
+import os
+from core.lexer import lex
+from core.parser import Parser
 
 from core import oop
 
@@ -34,7 +37,8 @@ from core.ast import (
     KozakDictionaryAccess,
     KozakThrow,
     KozakTry,
-    KozakExit
+    KozakExit,
+    KozakImport
 )
 
 class ReturnValue(Exception):
@@ -57,6 +61,8 @@ class Interpreter:
         self.class_table = oop.ClassTable()
         self.classes = {} 
         self.exit_code = 0
+        self.imported_files = set()
+        self.current_file_dir = None
 
     def _execute_function_body(self, body, local_env):
         """
@@ -137,6 +143,8 @@ class Interpreter:
             return self._eval_throw(node)
         elif isinstance(node, KozakExit):
             return self._eval_exit(node)
+        elif isinstance(node, KozakImport):
+            return self._eval_import(node)
         else:
             raise RuntimeErrorKozak(f'Unknown node type: {type(node).__name__}')
 
@@ -795,3 +803,58 @@ class Interpreter:
         self.exit_code = exit_code
         raise ProgramExit(exit_code)
     
+    def _eval_import(self, node):
+        file_path = self.eval(node.file_path)
+        if not isinstance(file_path, str):
+            raise RuntimeErrorKozak(f"Import file path must be a string, got{type(file_path).__name__} kozache.")
+        
+        if self.current_file_dir:
+            full_path = os.path.join(self.current_file_dir, file_path)
+        else:
+            full_path = file_path
+
+        full_path = os.path.abspath(full_path)
+
+        if full_path in self.imported_files:
+            return None
+        
+        if not os.path.exists(full_path):
+            raise RuntimeErrorKozak(f"Import file '{full_path}' not found, kozache.")
+        
+        if not full_path.endswith('.kozak'):
+            raise RuntimeErrorKozak(f"Can only import .kozak files, got '{file_path}'.")
+        
+        self.imported_files.add(full_path)
+
+        try:
+            with open(full_path, 'r', encoding='utf-8') as f:
+                code = f.read()
+            
+        except IOError as e:
+            raise RuntimeErrorKozak(f"Error reading import file '{full_path}': {e}")
+        
+        try:
+            from core.parser import Parser
+            from core.lexer import lex
+
+            tokens = list(lex(code))
+            parser = Parser(tokens)
+            ast = parser.parse()
+
+            if parser.errors:
+                error_messages = '\n'.join(parser.errors)
+                raise RuntimeErrorKozak(f"Errors in imported file, kozache '{full_path}':\n{error_messages}")
+        
+        except SyntaxError as e:
+            raise RuntimeErrorKozak(f"Syntax error in imported file '{full_path}': {e}")
+        
+        old_dir = self.current_file_dir
+        self.current_file_dir = os.path.dirname(full_path)
+
+        try:
+            self.eval(ast)
+        
+        finally:
+            self.current_file_dir = old_dir
+
+        return None
