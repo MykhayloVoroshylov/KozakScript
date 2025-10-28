@@ -1,6 +1,7 @@
 """Main.py file for the KozakScript programming language."""
 
 import sys
+import os
 import re
 from core.lexer import lex
 from core.parser import Parser
@@ -52,6 +53,7 @@ if __name__ == '__main__':
             exit_code = 1
         else:
             interpreter = Interpreter()
+            interpreter.current_file_dir = os.path.dirname(os.path.abspath(file_path))
             try:
                 interpreter.eval(ast)
                 exit_code = interpreter.exit_code
