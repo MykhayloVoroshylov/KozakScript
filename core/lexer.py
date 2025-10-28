@@ -32,7 +32,9 @@ KEYWORDS = {
     'Piymat': 'Piymat',          
     'Vkintsi': 'Vkintsi',        
     'Kydaty': 'Kydaty',
-    'Vykhid' : 'Vykhid'
+    'Vykhid' : 'Vykhid',
+    'Importuvaty': 'Importuvaty',
+
 }
 
 TOKEN_SPECIFICATION = [
