@@ -1,0 +1,5 @@
+Hetman
+
+Zavdannya HelloWorld(){
+    Spivaty("Hello World");
+}
