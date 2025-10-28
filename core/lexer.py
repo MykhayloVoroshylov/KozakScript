@@ -6,7 +6,8 @@ from collections import namedtuple
 Token = namedtuple(typename='Token', field_names=['type', 'value','line', 'column'])
 
 KEYWORDS = {
-    'Hetman': 'Hetman', 
+    #Ukrainian keywords KozakScript
+    'Hetman': 'Hetman', #starting word
     'Spivaty': 'Spivaty', 
     'Slukhai': 'Slukhai',
     'Povernuty': 'Povernuty',
@@ -35,6 +36,35 @@ KEYWORDS = {
     'Vykhid' : 'Vykhid',
     'Importuvaty': 'Importuvaty',
 
+    #English keywords KozakScript
+    'Chief': 'Hetman', #starting word
+    'Print': 'Spivaty',
+    'Input': 'Slukhai',
+    'Return': 'Povernuty',
+    'Function': 'Zavdannya',
+    'For': 'Dlya',
+    'While': 'Doki',
+    'True': 'Pravda',
+    'False': 'Nepravda',
+    'Int': 'Chyslo',
+    'Float': 'DroboveChyslo',
+    'Str': 'Ryadok',
+    'Bool': 'Logika',
+    'If': 'Yakscho',
+    'Else_If': 'AboYakscho',
+    'Else': 'Inakshe',
+    'length': 'Dovzhyna',
+    'each': 'DOROHOYU',
+    'Class': 'Klas',
+    'Constructor': 'Tvir',
+    'new': 'NEW',
+    'this': 'THIS',
+    'Try': 'Sprobuy',
+    'Catch': 'Piymat',
+    'Finally': 'Vkintsi',
+    'throw': 'Kydaty',
+    'exit' : 'Vykhid',
+    'Import': 'Importuvaty',
 }
 
 TOKEN_SPECIFICATION = [
