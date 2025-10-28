@@ -5,7 +5,7 @@ import re
 from core.lexer import lex
 from core.parser import Parser
 from core.interpreter import Interpreter
-from core.interpreter import RuntimeErrorKozak
+from core.interpreter import RuntimeErrorKozak, ProgramExit
 
 funny_hints = {
     r"Expected SEMICOLON": "Ay Kozache! Even borshch needs a spoon, your code needs a semicolon.",
@@ -24,6 +24,7 @@ def print_with_hint(err: str):
 
 if __name__ == '__main__':
     sys.stdout.reconfigure(encoding='utf-8')
+    exit_code = 0
     
     try:
         if len(sys.argv) < 2:
@@ -48,17 +49,32 @@ if __name__ == '__main__':
             for e in parser.errors:
                 err = str(e)
                 print_with_hint(err)
+            exit_code = 1
         else:
             interpreter = Interpreter()
-            interpreter.eval(ast)
-            print("Program executed successfully, kozache!")
+            try:
+                interpreter.eval(ast)
+                exit_code = interpreter.exit_code
+                print(f"Program executed successfully, kozache! \nProgram exited with code {exit_code}")
+                if exit_code != 0:
+                    raise ProgramExit(exit_code)
+            except ProgramExit as e:
+                exit_code = e.code
+                print(f"Program exited with code {exit_code}, kozache!")
+                    
         
     except RuntimeErrorKozak as e:
         print("Bida, kozache! Runtime error:")
         print_with_hint(str(e))
+        exit_code = 1
+        print(f"Error kozache! Program exited with code {exit_code}")
     except FileNotFoundError:
         print(f"Oslip ya, chy tviy file znyk, Kozache? The file '{file_path}' was not found")
+        exit_code = 1
+        print(f"Error kozache! Program exited with code {exit_code}")
     except Exception as e:
         print("Neperedbachena bida! An unexpected error occurred:")
         print_with_hint(str(e))
+        exit_code = 1
+        print(f"Error kozache! Program exited with code {exit_code}")
 
