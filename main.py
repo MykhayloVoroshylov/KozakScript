@@ -43,8 +43,6 @@ if __name__ == '__main__':
         parser = Parser(tokens)
         ast = parser.parse()
 
-        tokens = list(lex(code))
-
         if parser.errors:
             print("Bida, kozache! Errors found:")
             for e in parser.errors:

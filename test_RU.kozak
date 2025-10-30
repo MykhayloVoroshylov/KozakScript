@@ -1,0 +1,244 @@
+Ataman // Hetman
+
+// Variables and arithmetic
+a := 10;
+b := 5;
+c := a + b * 2;
+Pechatat("a + b*2 =", c);
+
+// Data Types
+x := Chislo("42");
+y := DrobnoyeChislo("3.14");
+s := Stroka(123);
+flag := Logika(1);
+Pechatat("Types:", x, y, s, flag);
+
+// Logic
+if_check := Pravda && Nepravda || Pravda;
+Pechatat("Logic check:", if_check);
+
+// Conditions
+Yesli(a > b) {
+    Pechatat("a більший за b"); // a is greater than b
+} Ili_Yesli(a < b) {
+    Pechatat("a менший за b"); // a is less than b
+} Inache {
+    Pechatat("a дорівнює b"); // a is equal to b
+}
+
+// Loops
+i := 0;
+Poka(i < 3) {
+    Pechatat("While loop i:", i);
+    i++;
+}
+
+Dlya(j := 0; j < 3; j := j + 1) {
+    Pechatat("For loop j:", j);
+}
+
+// Arrays and for-each
+arr := [1, 2, 3];
+Pechatat("Original array:", arr);
+Dlya val Kazhdy arr { // Dlya val kozhen arr
+    Pechatat("For-each value:", val);
+}
+dobavit(arr, 4);
+Pechatat("After append:", arr);
+vstavit(arr, 1, 99);
+Pechatat("After insert:", arr);
+Pechatat("Contains 2?", soderzhit(arr, 2));
+Pechatat("Index of 99:", index_znachenia(arr, 99));
+Pechatat("Slice arr[1:3]:", vyrezat(arr, 1, 3));
+Pechatat("Length of arr:", dlinna(arr)); // length (dovzhyna)
+udalit(arr, 1);
+Pechatat("After remove index 1:", arr);
+pop_val := vytaschit(arr);
+Pechatat("Popped value:", pop_val, "Array now:", arr);
+ochistit(arr);
+Pechatat("After clear:", arr);
+
+// Functions
+Zadanie greet(name) {
+    Pechatat("Hello,", name);
+    Vernut Stroka("Done greeting");
+}
+
+res := greet("Kozak");
+Pechatat("Greet returned:", res);
+
+// File Operations
+Zapisat("test.txt", "Hello Kozak!"); 
+content := Chitat("test.txt");
+Pechatat("File content:", content);
+
+// Input
+name := Input("Enter your name: "); // Slukhai (Listen/Input)
+Pechatat("You entered:", name);
+
+// Unary operations
+count := 0;
+count++;
+count--;
+Pechatat("Count after ++ and --:", count);
+
+// Powers and roots
+Pechatat("2^3 =", 2^3);
+Pechatat("27 ^/ 3 =", 27 ^/ 3);
+
+// Random
+rand_val := randint(1, 10);
+Pechatat("Random value 1-10:", rand_val);
+
+/* Comment
+    Comment */
+
+Pechatat("No Comment");
+
+// OOP
+Klass Sobaka { // Klas (Class)
+    Tvorenye(imya, vik) { // Tvir (Constructor)
+        etot.imya := imya;
+        etot.vik := vik;
+    }
+
+    Zadanie Bark() {
+        Pechatat(etot.imya + " woof!");
+    }
+}
+
+sobaka := novyy Sobaka("Rex", 3); // new (NEW)
+sobaka.Bark();
+
+// Dictionary
+slovnyk := {"imya": "Bohdan", "vik": 30, "misto": "Kyiv"};
+Pechatat(slovnyk["imya"]);
+
+slovnyk["professiya"] := "Hetman";
+Pechatat(slovnyk["professiya"]);
+
+klyuchi_array := klyuchi(slovnyk); // klyuchi means "keys" - not mapped in keywords
+Pechatat(klyuchi_array);
+
+// Polymorphism and Inheritance
+Klass Parent {
+    Tvorenye() {
+        etot.field1 := "Parent field";
+    }
+    Zadanie GetField1() {
+        Pechatat("Parent method called!");
+        Vernut etot.field1;
+    }
+}
+
+Klass Child : Parent {
+    Zadanie GetField2() {
+        Vernut "Child field";
+    }
+}
+
+my_object := novyy Child();
+// These two lines are now simple statements that should require semicolons:
+Pechatat(my_object.GetField1());
+// Line 20 - Test inheritance (should print Parent method called! Parent field)
+Pechatat(my_object.GetField2());
+// Line 21 - Test polymorphism (should print Child field)
+
+// Exception Handling
+
+// Test 1
+Poprobuy { // Sprobuy
+    x:= 10;
+    y := 0;
+    res := x/y;
+    Pechatat("Res= ");
+} Poymat(e){ // Piymat
+    Pechatat("Error: ", e);
+}
+
+// Test 2
+Poprobuy {
+    arr2 := [1, 2, 3];
+    Pechatat(arr[10]);
+} Poymat(error_msg){
+    Pechatat("Caught error: ", error_msg);
+}
+
+// Test 3
+counter := 0;
+Poprobuy {
+    counter := counter + 1;
+    Pechatat("In try block, counter: ", counter);
+    Brosat("Custom error message!"); // Kydaty
+} Poymat(e){
+    counter := counter + 1;
+    Pechatat("In catch block, counter:", counter);
+    Pechatat("Error", e);
+} Nakonets { // Vkintsi
+    counter := counter + 1;
+    Pechatat("In finally block, counter:", counter);
+    Pechatat("This always runs!");
+}
+Pechatat("Final counter:", counter);
+
+// Test 4
+Poprobuy {
+    Pechatat("Outer try");
+    Poprobuy {
+        Pechatat("Inner try");
+        Brosat("Inner error");
+    } Poymat(e) {
+        Pechatat("Inner catch:", e);
+        Brosat("Re-throwing from inner catch");
+    }
+    
+} Poymat(e) {
+    Pechatat("Outer catch:", e);
+}
+
+// Test 5
+Zadanie safeDivide(a, b) {
+    Poprobuy {
+        Yesli(b == 0) {
+            Brosat("Cannot divide by zero, kozache!");
+        }
+        Vernut a / b;
+    } Poymat(e) {
+        Pechatat("Division error:", e);
+        Vernut 0;
+    }
+}
+
+result1 := safeDivide(10, 2);
+Pechatat("10 / 2 =", result1);
+
+result2 := safeDivide(10, 0);
+Pechatat("10 / 0 =", result2);
+
+// Test 6
+Poprobuy {
+    content := Chitat("nonexistent.txt");
+    Pechatat(content);
+} Poymat(e) {
+    Pechatat("File error:", e);
+    Pechatat("Creating default file...");
+    Zapisat("nonexistent.txt", "Default content");
+}
+
+// Test 7
+Zadanie safeArrayAccess(arr, index) {
+    Poprobuy {
+        Vernut arr[index];
+    } Poymat(e) {
+        Pechatat("Array access error:", e);
+    } Nakonets {
+        Pechatat("Array access attempted");
+    }
+}
+
+my_arr := [10, 20, 30];
+val1 := safeArrayAccess(my_arr, 1);
+Pechatat("Value at index 1:", val1);
+
+val2 := safeArrayAccess(my_arr, 10);
+Pechatat("Value at index 10:", val2);

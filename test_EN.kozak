@@ -40,7 +40,7 @@ For(j := 0; j < 3; j := j + 1) {
 // Arrays and for-each
 arr := [1, 2, 3];
 Print("Original array:", arr);
-For val each arr { // Dlya val dorohoyu arr
+For val each arr { // Dlya val kozhen arr
     Print("For-each value:", val);
 }
 append(arr, 4);
@@ -117,7 +117,7 @@ Print(slovnyk["imya"]);
 slovnyk["professiya"] := "Hetman";
 Print(slovnyk["professiya"]);
 
-klyuchi_array := klyuchi(slovnyk); // klyuchi means "keys" - not mapped in keywords
+klyuchi_array := keys(slovnyk); // klyuchi means "keys" - not mapped in keywords
 Print(klyuchi_array);
 
 // Polymorphism and Inheritance
