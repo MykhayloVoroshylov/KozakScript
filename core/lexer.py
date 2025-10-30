@@ -21,10 +21,10 @@ KEYWORDS = {
     'Ryadok': 'Ryadok',
     'Logika': 'Logika',
     'Yakscho': 'Yakscho',
-    'AboYakscho': 'AboYakscho',
+    'Abo_Yakscho': 'AboYakscho',
     'Inakshe': 'Inakshe',
     'dovzhyna': 'Dovzhyna',
-    'dorohoyu': 'DOROHOYU',
+    'kozhen': 'KOZHEN',
     'Klas': 'Klas',
     'Tvir': 'Tvir',
     'new': 'NEW',
@@ -53,18 +53,82 @@ KEYWORDS = {
     'If': 'Yakscho',
     'Else_If': 'AboYakscho',
     'Else': 'Inakshe',
-    'length': 'Dovzhyna',
-    'each': 'DOROHOYU',
+    'Length': 'Dovzhyna',
+    'each': 'KOZHEN',
     'Class': 'Klas',
     'Constructor': 'Tvir',
-    'new': 'NEW',
-    'this': 'THIS',
+    'novyy': 'NEW',
+    'tsey': 'THIS',
     'Try': 'Sprobuy',
     'Catch': 'Piymat',
     'Finally': 'Vkintsi',
-    'throw': 'Kydaty',
-    'exit' : 'Vykhid',
+    'Throw': 'Kydaty',
+    'Exit' : 'Vykhid',
     'Import': 'Importuvaty',
+
+    #Russian keywords KozakScript
+    'Ataman': 'Hetman',#starting word
+    'Pechatat': 'Spivaty',
+    'Vvod': 'Slukhai',
+    'Vernut': 'Povernuty',
+    'Zadanie': 'Zavdannya',
+    'Dlya':'Dlya',
+    'Poka':'Doki',
+    'Pravda':'Pravda',
+    'Nepravda':'Nepravda',
+    'Chislo': 'Chyslo',
+    'DrobnoyeChislo': 'DroboveChyslo',
+    'Stroka': 'Ryadok',
+    'Logika': 'Logika',
+    'Yesli': 'Yakscho',
+    'Ili_Yesli': 'AboYakscho',
+    'Inache': 'Inakshe',
+    'Dlinna': 'Dovzhyna',
+    'Kazhdy': 'KOZHEN',
+    'Klass': 'Klas',
+    'Tvorenye': 'Tvir',
+    'novyy': 'NEW',
+    'etot': 'THIS',
+    'Poprobuy': 'Sprobuy',
+    'Poymat': 'Piymat',
+    'Nakonets': 'Vkintsi',
+    'Brosat': 'Kydaty',
+    'Vykhod': 'Vykhid',
+    'Importirovat': 'Importuvaty',
+
+
+    #Symbolic dialect keywords KozakScript
+    '>>>': 'Hetman', #starting word
+    '!': 'Spivaty',
+    '?': 'Slukhai',
+    '<!': 'Povernuty',
+    '$': 'Zavdannya',
+    '~~': 'Dlya',
+    '~`': 'Doki',
+    'O': 'Pravda',
+    'X': 'Nepravda',
+    'i`**': 'Chyslo',
+    'f`**': 'DroboveChyslo',
+    's`**': 'Ryadok',
+    'b`**': 'Logika',
+    '??': 'Yakscho',
+    '?!': 'AboYakscho',
+    '!!': 'Inakshe',
+    '___': 'Dovzhyna',
+    '::': 'KOZHEN',
+    '@': 'Klas',
+    '@=': 'Tvir',
+    '+@': 'NEW',
+    '->': 'THIS',
+    '<<': 'Sprobuy',
+    '>>': 'Piymat',
+    '<>': 'Vkintsi',
+    '!!>': 'Kydaty',
+    '<<<' : 'Vykhid',
+    '#': 'Importuvaty',
+    
+    #Romanian keywords KozakScript
+    
 }
 
 TOKEN_SPECIFICATION = [
@@ -72,6 +136,8 @@ TOKEN_SPECIFICATION = [
     ('STRING', r'"[^"]*"|\'[^\']*\''),
     ('MLCOMMENT', r'/\*.*?\*/'), 
     ('COMMENT', r'//[^\n]*'),
+    ('SYMBOLIC_MULTI', r'>>>|<<<|!!>|!!|i`\*\*|f`\*\*|s`\*\*|b`\*\*|\+@|@=|~`|~~|\?\?|\?!|<!|___|->|::|<<|>>|<>|=<|=>'),
+    ('SYMBOLIC_SINGLE', r'[!?$@#OX]'),
     ('ID', r'[a-zA-Z_][a-zA-Z_0-9]*'),
     ('DOT', r'\.'),
     ('OP', r'\+\+|\%|--|&&|\|\||:=|==|!=|>=|<=|//|\^/|\^|[+\-*/=<>]+'),
@@ -108,6 +174,8 @@ def lex(code):
         if kind == 'NUMBER':
             value = float(value) if '.' in value else int(value)
             yield Token(kind, value, line_num, col_num)
+        elif kind in ('SYMBOLIC_MULTI', 'SYMBOLIC_SINGLE', 'ID'):
+            yield Token(KEYWORDS.get(value, 'ID'), value, line_num, col_num)
         elif kind == 'ID':
             yield Token(KEYWORDS.get(value, 'ID'), value, line_num, col_num)
         elif kind in ('LPAREN', 'RPAREN', 'LBRACE', 'RBRACE', 'LBRACKET', 'RBRACKET', 'SEMICOLON', 'COMMA', 'OP', 'STRING', 'DOT', 'COLON'):

@@ -56,6 +56,7 @@ class ProgramExit(Exception):
 
 class Interpreter:
     def __init__(self):
+        self.scopes = [{}]
         self.env = {}
         self.functions = {}
         self.class_table = oop.ClassTable()
@@ -319,19 +320,19 @@ class Interpreter:
     def _eval_function_def(self, node):
         self.functions[node.name] = node
 
+
     def _eval_function_call(self, node):
         
-        if node.name == 'remove_key':
+        if node.name == 'remove_key' or node.name == 'vydalyty_klyuch' or node.name == 'udalit_klyuch':
             if len(node.arguments) != 2:
                 raise RuntimeErrorKozak("Function 'remove_key' expects exactly 2 arguments (dictionary, key), kozache.")
             
             dictionary = self.eval(node.arguments[0])
             key = self.eval(node.arguments[1])
             
-            # Call the private helper function you already defined
             return self._kozak_remove_key(dictionary, key)
 
-        if node.name == 'insert':
+        if node.name == 'insert' or node.name == 'vstavyty' or node.name == 'vstavit':
             if len(node.arguments) != 3:
                 raise RuntimeErrorKozak("Function 'insert' expects exactly 3 arguments, kozache.")
             arr = self.eval(node.arguments[0])
@@ -346,7 +347,7 @@ class Interpreter:
             arr.insert(index, value)
             return None
         
-        if node.name == 'append':
+        if node.name == 'append' or node.name == 'dodaty' or node.name == 'dobavit':
             if len(node.arguments) != 2:
                 raise RuntimeErrorKozak("Function 'append' expects exactly 2 arguments, kozache.")
             arr = self.eval(node.arguments[0])
@@ -356,7 +357,7 @@ class Interpreter:
             arr.append(value)
             return None
 
-        if node.name == 'index_of':
+        if node.name == 'index_of' or node.name == 'indeks_z' or node.name == 'index_znachenia':
             if len(node.arguments) != 2:
                 raise RuntimeErrorKozak("Function 'index_of' expects exactly 2 arguments, kozache.")
             arr = self.eval(node.arguments[0])
@@ -368,7 +369,7 @@ class Interpreter:
             except ValueError:
                 return -1
 
-        if node.name == 'contains':
+        if node.name == 'contains' or node.name == 'mistyt' or node.name == 'soderzhit':
             if len(node.arguments) != 2:
                 raise RuntimeErrorKozak("Function 'contains' expects exactly 2 arguments, kozache.")
             arr = self.eval(node.arguments[0])
@@ -377,7 +378,7 @@ class Interpreter:
                 raise RuntimeErrorKozak("First argument of 'contains' must be an array, kozache.")
             return value in arr
 
-        if node.name == 'slice':
+        if node.name == 'slice' or node.name == 'vyrizaty' or node.name == 'vyrezat':
             if len(node.arguments) not in (2, 3):
                 raise RuntimeErrorKozak("Function 'slice' expects 2 or 3 arguments, kozache.")
             arr = self.eval(node.arguments[0])
@@ -389,7 +390,7 @@ class Interpreter:
                 raise RuntimeErrorKozak("Start and end arguments must be integers, kozache.")
             return arr[start:end]
 
-        if node.name == 'clear':
+        if node.name == 'clear' or node.name == 'ochystyty' or node.name == 'ochistit':
             if len(node.arguments) != 1:
                 raise RuntimeErrorKozak("Function 'clear' expects exactly 1 argument, kozache.")
             arr = self.eval(node.arguments[0])
@@ -398,7 +399,7 @@ class Interpreter:
             arr.clear()
             return None
 
-        if node.name == 'pop':
+        if node.name == 'pop' or node.name == 'vyinyaty' or node.name == 'vytaschit':
             if len(node.arguments) != 1:
                 raise RuntimeErrorKozak("Function 'pop' expects exactly 1 argument, kozache.")
             arr = self.eval(node.arguments[0])
@@ -408,7 +409,7 @@ class Interpreter:
                 raise RuntimeErrorKozak("Cannot pop from empty array, kozache.")
             return arr.pop()
 
-        if node.name == 'remove':
+        if node.name == 'remove' or node.name == 'vydalyty' or node.name == 'udalit':
             if len(node.arguments) != 2:
                 raise RuntimeErrorKozak("Function 'remove' expects exactly 2 arguments, kozache.")
             arr = self.eval(node.arguments[0])
@@ -423,7 +424,7 @@ class Interpreter:
             return None
 
         
-        if node.name == 'Zapysaty' or node.name == 'Write':
+        if node.name in ('Zapysaty', 'Write', 'Zapisat', '=>'):
             if len(node.arguments) < 2 or len(node.arguments) > 3:
                 raise RuntimeErrorKozak("Function 'Zapysaty' expects 2 or 3 arguments, kozache.")
             file_name = self.eval(node.arguments[0])
@@ -444,7 +445,7 @@ class Interpreter:
                 raise RuntimeErrorKozak(f"File writing error: {e}")
 
 
-        if node.name == 'Chytaty' or node.name == 'Read':
+        if node.name in ('Chytaty', 'Read', 'Chitat', '=<'):
             if len(node.arguments) != 1:
                 raise RuntimeErrorKozak("Function 'Chytaty' expects exactly 1 argument, kozache.")
             file_name = self.eval(node.arguments[0])
@@ -459,7 +460,7 @@ class Interpreter:
                 raise RuntimeErrorKozak(f"File reading error: {e}")
 
 
-        if node.name == 'dovzhyna' or node.name == 'length':
+        if node.name in ('dovzhyna', 'length', 'dlinna', '___'):
             if len(node.arguments) != 1:
                 raise RuntimeErrorKozak("Function 'dovzhyna' expects exactly 1 argument, kozache.")
             arg = self.eval(node.arguments[0])
@@ -475,8 +476,6 @@ class Interpreter:
             if not isinstance(start, int) or not isinstance(end, int):
                 raise RuntimeErrorKozak("Arguments for 'randint' must be integers, kozache.")
             return random.randint(start, end)
-        
-        # In _eval_function_call, add these built-in functions:
 
         if node.name == 'klyuchi' or node.name == 'keys':  # keys
             if len(node.arguments) != 1:
@@ -486,7 +485,7 @@ class Interpreter:
                 raise RuntimeErrorKozak("Argument must be a dictionary, kozache.")
             return list(dictionary.keys())
 
-        if node.name == 'znachennya' or node.name == 'values':  # values
+        if node.name == 'znachennya' or node.name == 'values' or node.name=='znachennie':  # values
             if len(node.arguments) != 1:
                 raise RuntimeErrorKozak("Function 'znachennya' expects exactly 1 argument, kozache.")
             dictionary = self.eval(node.arguments[0])
@@ -494,7 +493,7 @@ class Interpreter:
                 raise RuntimeErrorKozak("Argument must be a dictionary, kozache.")
             return list(dictionary.values())
 
-        if node.name == 'maye_klyuch' or node.name == 'has_key':  # has_key
+        if node.name == 'maye_klyuch' or node.name == 'has_key' or node.name == 'imeet_klyuch':  # has_key
             if len(node.arguments) != 2:
                 raise RuntimeErrorKozak("Function 'maye_klyuch' expects exactly 2 arguments, kozache.")
             dictionary = self.eval(node.arguments[0])
@@ -730,6 +729,8 @@ class Interpreter:
         try:
             for stmt in node.try_body:
                 self.eval(stmt)
+        except ReturnValue as e:  # ADD THIS - Don't catch returns!
+            raise
         except RuntimeErrorKozak as e:
             exception_caught = True
             exception_value = str(e)
@@ -858,3 +859,12 @@ class Interpreter:
             self.current_file_dir = old_dir
 
         return None
+    
+    def _lookup_variable(self, name):
+        # Search from innermost to outermost scope
+        for scope in reversed(self.scopes):
+            if name in scope:
+                return scope[name]
+        if name in self.functions:
+            return self.functions[name]
+        raise RuntimeErrorKozak(f'Variable {name} is not defined')

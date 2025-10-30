@@ -1,5 +1,7 @@
 """Parser for KozakScript"""
 
+import traceback
+
 from core.ast import (
     KozakNumber,
     KozakString,
@@ -83,11 +85,26 @@ class Parser:
         if token and token.type == expected_type:
             self.advance()
             return token
+        stack = traceback.extract_stack()
+        caller_info = stack[-2]
         
         if token:
-            return self.error(token, f"Expected {expected_type}, got {token.type} at line {token.line}, column {token.column}")
+            error_msg = (
+            f"Expected {expected_type}, got {token.type} ('{token.value}') "
+            f"at line {token.line}, column {token.column}\n"
+            f"  Called from: {caller_info.filename}:{caller_info.lineno} "
+            f"in {caller_info.name}()"
+        )
+            #print(f"DEBUG: {error_msg}")
+            return self.error(token, error_msg)
         else:
-            return self.error(token, f"Expected {expected_type}, but found end of file.")
+            error_msg = (
+            f"Expected {expected_type}, but found end of file.\n"
+            f"  Called from: {caller_info.filename}:{caller_info.lineno} "
+            f"in {caller_info.name}()"
+            )
+
+            return self.error(token, error_msg)
 
     def parse(self):
         if not (self.peek() and self.peek().type == 'Hetman'):
@@ -118,7 +135,7 @@ class Parser:
             next_tok = self.peek_ahead(1)
             next_next_tok = self.peek_ahead(2)
             
-            if next_tok and next_tok.type == 'ID' and next_next_tok and next_next_tok.type == 'DOROHOYU':
+            if next_tok and next_tok.type == 'ID' and next_next_tok and next_next_tok.type == 'KOZHEN':
                 return self.for_each_statement()
             else:
                 return self.for_statement()
@@ -350,7 +367,10 @@ class Parser:
             return KozakNewInstance(class_name, args)
 
         elif tok.type in ('ID', 'Dovzhyna', 'THIS'):
-            name = tok.value
+            if tok.type == 'THIS':
+                name = 'this'
+            else: 
+                name = tok.value
             self.advance()
 
             if self.peek() and self.peek().type == 'LPAREN':
@@ -530,7 +550,7 @@ class Parser:
     def for_each_statement(self):
         self.expect('Dlya')
         var_name = self.expect('ID').value
-        self.expect('DOROHOYU')
+        self.expect('KOZHEN')
         array_expr = self.or_expression()
         self.expect('LBRACE')
         body = self.block()
@@ -664,13 +684,13 @@ class Parser:
 
             catch_clauses.append((exception_var, catch_body))
 
-            finally_body = None
-            if self.peek() and self.peek().type == 'Vkintsi':
-                self.advance()
-                self.expect('LBRACE')
-                finally_body = self.block()
+        finally_body = None
+        if self.peek() and self.peek().type == 'Vkintsi':
+            self.advance()
+            self.expect('LBRACE')
+            finally_body = self.block()
 
-            return KozakTry(try_body, catch_clauses, finally_body)
+        return KozakTry(try_body, catch_clauses, finally_body)
     
     def throw_statement(self):
         self.expect('Kydaty')
