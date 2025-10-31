@@ -82,7 +82,11 @@ Examples:
             if not args.skip_strict and parser.detected_dialect:
                 print(f"✓ Dialect check passed: Using {parser.detected_dialect} dialect")
 
-            interpreter = Interpreter()
+            interpreter = Interpreter(
+                strict_dialect=not args.skip_strict,
+                parent_dialect=parser.detected_dialect
+            )
+            
             interpreter.current_file_dir = os.path.dirname(os.path.abspath(file_path))
             try:
                 interpreter.eval(ast)
@@ -93,6 +97,7 @@ Examples:
             except ProgramExit as e:
                 exit_code = e.code
                 print(f"Program exited with code {exit_code}, kozache!")
+            
                     
         
     except RuntimeErrorKozak as e:
