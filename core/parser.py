@@ -39,11 +39,68 @@ from core.ast import (
 from core.lexer import Token
 
 class Parser:
+    DIALECT_STARTERS = {
+        'Hetman': 'ukrainian',
+        'Chief': 'english',
+        'Ataman': 'russian',
+        '>>>': 'symbolic'
+    }
 
-    def __init__(self, tokens):
+    SHARED_SLAVIC = {
+        'Dlya',
+        'Pravda',
+        'Nepravda',
+        'Logika',
+        'klyuchi',
+        'novyy'
+    }
+
+    DIALECT_KEYWORDS = {
+        'ukrainian': {
+            'Hetman', 'Spivaty', 'Slukhai', 'Povernuty', 'Zavdannya', 'Doki',
+            'Chyslo', 'DroboveChyslo', 'Ryadok', 
+            'Yakscho', 'Abo_Yakscho', 'Inakshe', 'dovzhyna', 'kozhen', 'Klas', 'Tvir',
+            'tsey', 'Sprobuy', 'Piymat', 'Vkintsi', 'Kydaty', 'Vykhid', 'Importuvaty',
+            'znachennya', 'maye_klyuch', 'vydalyty_klyuch',
+            'dodaty', 'vstavyty', 'vydalyty', 'vyinyaty', 'ochystyty', 'vyrizaty',
+            'mistyt', 'index_z', 'Zapysaty', 'Chytaty'
+        },
+        'english': {
+            'Chief', 'Print', 'Input', 'Return', 'Function', 'For', 'While',
+            'True', 'False', 'Int', 'Float', 'Str', 'Bool',
+            'If', 'Else_If', 'Else', 'Length', 'each', 'Class', 'Constructor',
+            'new', 'this', 'Try', 'Catch', 'Finally', 'Throw', 'Exit', 'Import',
+            'keys', 'values', 'has_key', 'remove_key',
+            'append', 'insert', 'remove', 'pop', 'clear', 'slice',
+            'contains', 'index_of', 'Write', 'Read'
+        },
+        'russian': {
+            'Ataman', 'Pechatat', 'Vvod', 'Vernut', 'Zadanie', 'Poka',
+            'Chislo', 'DrobnoyeChislo', 'Stroka', 
+            'Yesli', 'Ili_Yesli', 'Inache', 'dlinna', 'kazhdy', 'Klass', 'Tvorenye',
+            'etot', 'Poprobuy', 'Poymat', 'Nakonets', 'Brosat', 'Vykhod', 'Importirovat',
+            'znachennie', 'imeet_klyuch', 'udalit_klyuch',
+            'dobavit', 'vstavit', 'udalit', 'vytaschit', 'ochistit', 'vyrezat',
+            'soderzhit', 'index_znachenia', 'Zapisat', 'Chitat'
+        },
+        'symbolic': {
+            '>>>', '!', '?', '<!', '$', '~~', '~`',
+            'O', 'X', 'i`**', 'f`**', 's`**', 'b`**',
+            '??', '?!', '!!', '___', '::', '@', '@=',
+            '+@', '->', '<<', '>>', '<>', '!!>', '<<<', '#',
+            r'k{}', r'v{}', '?k', '-k',
+            '+<', '+:', '-<', '-<!', '--<', '[..]',
+            '?^', '?:', '=>', '=<'
+        }
+    }
+
+    def __init__(self, tokens, strict_dialect=False):
         self.tokens = tokens
         self.current_token_index = 0
         self.errors = []
+        self.strict_dialect = strict_dialect
+        self.detected_dialect = None
+        self.dialect_violations = []
 
     def error(self, token, message):
         if token:
@@ -52,8 +109,52 @@ class Parser:
             self.errors.append(f"Error at unknown location: {message}")
         self.synchronize()
         return None
-
-
+    
+    def check_dialect(self, token):
+        """Check and enforce dialect consistency"""
+        if not self.strict_dialect:
+            return
+        
+        if token.value in self.SHARED_SLAVIC:
+            if self.detected_dialect is None:
+                return
+            
+            if self.detected_dialect in ('ukrainian', 'russian'):
+                return
+            else:
+                violation = (
+                    f"Dialect mixing at line {token.line}, col {token.column}: "
+                    f"Using Slavic keyword '{token.value}' in {self.detected_dialect} program"
+                )
+                self.dialect_violations.append(violation)
+                self.errors.append(violation)
+                return
+        
+        # Determine which dialect this token belongs to
+        token_dialect = None
+        for dialect, keywords in self.DIALECT_KEYWORDS.items():
+            if token.value in keywords:
+                token_dialect = dialect
+                break
+        
+        # Skip tokens that aren't dialect-specific (like numbers, strings, operators)
+        if token_dialect is None:
+            return
+        
+        # First dialect-specific token sets the dialect
+        if self.detected_dialect is None:
+            self.detected_dialect = token_dialect
+            return
+        
+        # Check for dialect mixing
+        if self.detected_dialect != token_dialect:
+            violation = (
+                f"Dialect mixing at line {token.line}, col {token.column}: "
+                f"Using {token_dialect} keyword '{token.value}' in {self.detected_dialect} program"
+            )
+            self.dialect_violations.append(violation)
+            self.errors.append(violation)
+    
     def synchronize(self):
         """Skip tokens until we find a good recovery point"""
         # Just advance past the problematic token
@@ -107,11 +208,15 @@ class Parser:
             return self.error(token, error_msg)
 
     def parse(self):
+        first_token = self.peek()
         if not (self.peek() and self.peek().type == 'Hetman'):
-            # Ми знаємо, що це перша лінія, тому можна вказати її явно
             raise SyntaxError("Be respectful to Hetman: you should always declare him at the start! (line 1, column 1)")
-        self.advance()
+        
 
+        if self.strict_dialect and first_token.value in self.DIALECT_STARTERS:
+            self.detected_dialect = self.DIALECT_STARTERS[first_token.value]
+
+        self.advance()
         statements = []
         while self.peek():
             stmt = self.statement()
@@ -126,6 +231,10 @@ class Parser:
         tok = self.peek()
         if not tok:
             return None
+        
+        if tok.type in ('Yakscho', 'Doki', 'Dlya', 'Zavdannya', 'Sprobuy', 
+                     'Kydaty', 'Vykhid', 'Importuvaty', 'Spivaty', 'Klas'):
+            self.check_dialect(tok)
 
         if tok.type == 'Yakscho':
             return self.if_statement()
@@ -349,6 +458,18 @@ class Parser:
 
     def factor(self):
         tok = self.peek()
+
+        if tok.type == 'OP' and tok.value == '-':
+            self.advance()
+            operand = self.factor()  # Recursively parse the operand
+            return KozakBinOp(KozakNumber(0), '-', operand)  # Convert -x to 0 - x
+    
+    # Handle unary plus (just ignore it)
+        if tok.type == 'OP' and tok.value == '+':
+            self.advance()
+            return self.factor()
+
+
         if tok.type == 'NUMBER':
             self.advance()
             return KozakNumber(tok.value)
@@ -367,6 +488,7 @@ class Parser:
             return KozakNewInstance(class_name, args)
 
         elif tok.type in ('ID', 'Dovzhyna', 'THIS'):
+            self.check_dialect(tok)
             if tok.type == 'THIS':
                 name = 'this'
             else: 

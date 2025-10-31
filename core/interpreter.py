@@ -2,7 +2,7 @@
 import random
 import sys 
 import os
-from core.lexer import lex
+#from core.lexer import lex
 from core.parser import Parser
 
 from core import oop
@@ -249,12 +249,12 @@ class Interpreter:
             try:
                 return int(value)
             except (ValueError, TypeError):
-                raise RuntimeErrorKozak(f"Cannot cast '{value}' to 'Chyslo'.")
+                raise RuntimeErrorKozak(f"Cannot cast '{value}' to 'Int'.")
         elif node.target_type == 'DroboveChyslo':
             try:
                 return float(value)
             except (ValueError, TypeError):
-                raise RuntimeErrorKozak(f"Cannot cast '{value}' to 'DroboveChyslo'.")
+                raise RuntimeErrorKozak(f"Cannot cast '{value}' to 'Float'.")
         elif node.target_type == 'Ryadok':
             return str(value)
         elif node.target_type == 'Logika':
@@ -323,7 +323,7 @@ class Interpreter:
 
     def _eval_function_call(self, node):
         
-        if node.name == 'remove_key' or node.name == 'vydalyty_klyuch' or node.name == 'udalit_klyuch':
+        if node.name == 'remove_key' or node.name == 'vydalyty_klyuch' or node.name == 'udalit_klyuch' or node.name == 'vydalyty_klyuch_sym':
             if len(node.arguments) != 2:
                 raise RuntimeErrorKozak("Function 'remove_key' expects exactly 2 arguments (dictionary, key), kozache.")
             
@@ -332,7 +332,7 @@ class Interpreter:
             
             return self._kozak_remove_key(dictionary, key)
 
-        if node.name == 'insert' or node.name == 'vstavyty' or node.name == 'vstavit':
+        if node.name == 'insert' or node.name == 'vstavyty' or node.name == 'vstavit' or node.name == '+:':
             if len(node.arguments) != 3:
                 raise RuntimeErrorKozak("Function 'insert' expects exactly 3 arguments, kozache.")
             arr = self.eval(node.arguments[0])
@@ -347,7 +347,7 @@ class Interpreter:
             arr.insert(index, value)
             return None
         
-        if node.name == 'append' or node.name == 'dodaty' or node.name == 'dobavit':
+        if node.name == 'append' or node.name == 'dodaty' or node.name == 'dobavit' or node.name == '+<':
             if len(node.arguments) != 2:
                 raise RuntimeErrorKozak("Function 'append' expects exactly 2 arguments, kozache.")
             arr = self.eval(node.arguments[0])
@@ -357,7 +357,7 @@ class Interpreter:
             arr.append(value)
             return None
 
-        if node.name == 'index_of' or node.name == 'indeks_z' or node.name == 'index_znachenia':
+        if node.name == 'index_of' or node.name == 'index_z' or node.name == 'index_znachenia' or node.name == '?:':
             if len(node.arguments) != 2:
                 raise RuntimeErrorKozak("Function 'index_of' expects exactly 2 arguments, kozache.")
             arr = self.eval(node.arguments[0])
@@ -369,7 +369,7 @@ class Interpreter:
             except ValueError:
                 return -1
 
-        if node.name == 'contains' or node.name == 'mistyt' or node.name == 'soderzhit':
+        if node.name == 'contains' or node.name == 'mistyt' or node.name == 'soderzhit' or node.name == '?^':
             if len(node.arguments) != 2:
                 raise RuntimeErrorKozak("Function 'contains' expects exactly 2 arguments, kozache.")
             arr = self.eval(node.arguments[0])
@@ -378,7 +378,7 @@ class Interpreter:
                 raise RuntimeErrorKozak("First argument of 'contains' must be an array, kozache.")
             return value in arr
 
-        if node.name == 'slice' or node.name == 'vyrizaty' or node.name == 'vyrezat':
+        if node.name == 'slice' or node.name == 'vyrizaty' or node.name == 'vyrezat' or node.name == '[..]':
             if len(node.arguments) not in (2, 3):
                 raise RuntimeErrorKozak("Function 'slice' expects 2 or 3 arguments, kozache.")
             arr = self.eval(node.arguments[0])
@@ -390,7 +390,7 @@ class Interpreter:
                 raise RuntimeErrorKozak("Start and end arguments must be integers, kozache.")
             return arr[start:end]
 
-        if node.name == 'clear' or node.name == 'ochystyty' or node.name == 'ochistit':
+        if node.name == 'clear' or node.name == 'ochystyty' or node.name == 'ochistit' or node.name == '--<':
             if len(node.arguments) != 1:
                 raise RuntimeErrorKozak("Function 'clear' expects exactly 1 argument, kozache.")
             arr = self.eval(node.arguments[0])
@@ -399,7 +399,7 @@ class Interpreter:
             arr.clear()
             return None
 
-        if node.name == 'pop' or node.name == 'vyinyaty' or node.name == 'vytaschit':
+        if node.name == 'pop' or node.name == 'vyinyaty' or node.name == 'vytaschit' or node.name == '-<!':
             if len(node.arguments) != 1:
                 raise RuntimeErrorKozak("Function 'pop' expects exactly 1 argument, kozache.")
             arr = self.eval(node.arguments[0])
@@ -409,7 +409,7 @@ class Interpreter:
                 raise RuntimeErrorKozak("Cannot pop from empty array, kozache.")
             return arr.pop()
 
-        if node.name == 'remove' or node.name == 'vydalyty' or node.name == 'udalit':
+        if node.name == 'remove' or node.name == 'vydalyty' or node.name == 'udalit' or node.name == '-<':
             if len(node.arguments) != 2:
                 raise RuntimeErrorKozak("Function 'remove' expects exactly 2 arguments, kozache.")
             arr = self.eval(node.arguments[0])
@@ -477,7 +477,7 @@ class Interpreter:
                 raise RuntimeErrorKozak("Arguments for 'randint' must be integers, kozache.")
             return random.randint(start, end)
 
-        if node.name == 'klyuchi' or node.name == 'keys':  # keys
+        if node.name == 'klyuchi' or node.name == 'keys' or node.name == 'klyuchi_sym':  # keys
             if len(node.arguments) != 1:
                 raise RuntimeErrorKozak("Function 'klyuchi' expects exactly 1 argument, kozache.")
             dictionary = self.eval(node.arguments[0])
@@ -485,7 +485,7 @@ class Interpreter:
                 raise RuntimeErrorKozak("Argument must be a dictionary, kozache.")
             return list(dictionary.keys())
 
-        if node.name == 'znachennya' or node.name == 'values' or node.name=='znachennie':  # values
+        if node.name == 'znachennya' or node.name == 'values' or node.name=='znachennie' or node.name == 'znachennya_sym':  # values
             if len(node.arguments) != 1:
                 raise RuntimeErrorKozak("Function 'znachennya' expects exactly 1 argument, kozache.")
             dictionary = self.eval(node.arguments[0])
@@ -493,7 +493,7 @@ class Interpreter:
                 raise RuntimeErrorKozak("Argument must be a dictionary, kozache.")
             return list(dictionary.values())
 
-        if node.name == 'maye_klyuch' or node.name == 'has_key' or node.name == 'imeet_klyuch':  # has_key
+        if node.name == 'maye_klyuch' or node.name == 'has_key' or node.name == 'imeet_klyuch' or node.name == 'maye_klyuch_sym':  # has_key
             if len(node.arguments) != 2:
                 raise RuntimeErrorKozak("Function 'maye_klyuch' expects exactly 2 arguments, kozache.")
             dictionary = self.eval(node.arguments[0])
@@ -729,8 +729,13 @@ class Interpreter:
         try:
             for stmt in node.try_body:
                 self.eval(stmt)
-        except ReturnValue as e:  # ADD THIS - Don't catch returns!
-            raise
+        except ReturnValue as e:  # Don't catch returns - let them propagate!
+            # Execute finally block first, then re-raise
+            if node.finally_body:
+                for stmt in node.finally_body:
+                    self.eval(stmt)
+            raise  # Re-raise the ReturnValue to propagate it up
+            
         except RuntimeErrorKozak as e:
             exception_caught = True
             exception_value = str(e)
@@ -745,6 +750,11 @@ class Interpreter:
                 try:
                     for stmt in catch_body:
                         self.eval(stmt)
+                except ReturnValue as e:  # If catch block returns, let it propagate
+                    if node.finally_body:
+                        for stmt in node.finally_body:
+                            self.eval(stmt)
+                    raise
                 
                 finally: 
                     if exception_var:
@@ -768,6 +778,11 @@ class Interpreter:
                 try:
                     for stmt in catch_body:
                         self.eval(stmt)
+                except ReturnValue as e:  # If catch block returns, let it propagate
+                    if node.finally_body:
+                        for stmt in node.finally_body:
+                            self.eval(stmt)
+                    raise
                 
                 finally:
                     if exception_var:
@@ -782,7 +797,9 @@ class Interpreter:
             if node.finally_body:
                 for stmt in node.finally_body:
                     self.eval(stmt)
-
+        
+        # Try block completed without returning - this is normal
+        return None
     def _eval_throw(self, node):
         message = self.eval(node.message)
         raise RuntimeErrorKozak(str(message))
@@ -868,3 +885,4 @@ class Interpreter:
         if name in self.functions:
             return self.functions[name]
         raise RuntimeErrorKozak(f'Variable {name} is not defined')
+

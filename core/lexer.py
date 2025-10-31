@@ -126,8 +126,10 @@ KEYWORDS = {
     '!!>': 'Kydaty',
     '<<<' : 'Vykhid',
     '#': 'Importuvaty',
-    
-    #Romanian keywords KozakScript
+    r'k{}': 'klyuchi_sym',
+    r'v{}': 'znachennya_sym', 
+    '?k': 'maye_klyuch_sym',
+    '-k': 'vydalyty_klyuch_sym',
     
 }
 
@@ -136,7 +138,7 @@ TOKEN_SPECIFICATION = [
     ('STRING', r'"[^"]*"|\'[^\']*\''),
     ('MLCOMMENT', r'/\*.*?\*/'), 
     ('COMMENT', r'//[^\n]*'),
-    ('SYMBOLIC_MULTI', r'>>>|<<<|!!>|!!|i`\*\*|f`\*\*|s`\*\*|b`\*\*|\+@|@=|~`|~~|\?\?|\?!|<!|___|->|::|<<|>>|<>|=<|=>'),
+    ('SYMBOLIC_MULTI', r'>>>|<<<|!!>|!!|i`\*\*|f`\*\*|s`\*\*|b`\*\*|\+@|@=|~`|~~|\?\?|\?!|<!|-<!|___|\[\.\.\]|->|::|<<|>>|<>|=<|=>|\+<|\+:|\?\^|-<|-<!|--<|\?:|-<|--<|k\{\}|v\{\}|\?k|-k'),
     ('SYMBOLIC_SINGLE', r'[!?$@#OX]'),
     ('ID', r'[a-zA-Z_][a-zA-Z_0-9]*'),
     ('DOT', r'\.'),
@@ -175,7 +177,14 @@ def lex(code):
             value = float(value) if '.' in value else int(value)
             yield Token(kind, value, line_num, col_num)
         elif kind in ('SYMBOLIC_MULTI', 'SYMBOLIC_SINGLE', 'ID'):
-            yield Token(KEYWORDS.get(value, 'ID'), value, line_num, col_num)
+            mapped_type = KEYWORDS.get(value, 'ID')
+            
+            # For dictionary function symbols, yield as ID with the function name
+            if value in ('k{}', 'v{}', '?k', '-k'):
+                yield Token('ID', KEYWORDS[value], line_num, col_num)
+            else:
+                yield Token(mapped_type, value, line_num, col_num)
+
         elif kind == 'ID':
             yield Token(KEYWORDS.get(value, 'ID'), value, line_num, col_num)
         elif kind in ('LPAREN', 'RPAREN', 'LBRACE', 'RBRACE', 'LBRACKET', 'RBRACKET', 'SEMICOLON', 'COMMA', 'OP', 'STRING', 'DOT', 'COLON'):
