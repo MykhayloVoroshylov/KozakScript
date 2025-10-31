@@ -9,11 +9,12 @@ Doki (guess != hidden_number){
         Spivaty("The hidden number is greater!");
         guess := Chyslo(Slukhai("Try again: "));
     }
-    AboYakscho(guess > hidden_number){
+    Abo_Yakscho(guess > hidden_number){
         Spivaty("The hidden number is smaller!");
         guess := Chyslo(Slukhai("Try again: "));
     }
 }
 
 Spivaty("Congrats, you found the number! it indeed was " + hidden_number);
+
 
