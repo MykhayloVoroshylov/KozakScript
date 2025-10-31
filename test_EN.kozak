@@ -1,4 +1,4 @@
-Chief // Hetman
+Chief 
 
 // Variables and arithmetic
 a := 10;
@@ -107,7 +107,7 @@ Class Sobaka { // Klas (Class)
     }
 }
 
-sobaka := new Sobaka("Rex", 3); // new (NEW)
+sobaka := novyy Sobaka("Rex", 3); // new (NEW)
 sobaka.Bark();
 
 // Dictionary
@@ -169,7 +169,7 @@ counter := 0;
 Try {
     counter := counter + 1;
     Print("In try block, counter: ", counter);
-    throw("Custom error message!"); // Kydaty
+    Throw("Custom error message!"); // Kydaty
 } Catch(e){
     counter := counter + 1;
     Print("In catch block, counter:", counter);
@@ -186,10 +186,10 @@ Try {
     Print("Outer try");
     Try {
         Print("Inner try");
-        throw("Inner error");
+        Throw("Inner error");
     } Catch(e) {
         Print("Inner catch:", e);
-        throw("Re-throwing from inner catch");
+        Throw("Re-throwing from inner catch");
     }
     
 } Catch(e) {

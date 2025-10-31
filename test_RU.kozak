@@ -117,7 +117,7 @@ Pechatat(slovnyk["imya"]);
 slovnyk["professiya"] := "Hetman";
 Pechatat(slovnyk["professiya"]);
 
-klyuchi_array := klyuchi(slovnyk); // klyuchi means "keys" - not mapped in keywords
+klyuchi_array := klyuchi(slovnyk); 
 Pechatat(klyuchi_array);
 
 // Polymorphism and Inheritance
