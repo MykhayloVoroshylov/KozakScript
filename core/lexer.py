@@ -134,11 +134,11 @@ KEYWORDS = {
 }
 
 TOKEN_SPECIFICATION = [
+    ('SYMBOLIC_MULTI', r'>>>|<<<|1!|0!|!!>|!!|i`\*\*|f`\*\*|s`\*\*|b`\*\*|\+@|@=|~`|~~|\?\?|\?!|<!|-<!|___|\[\.\.\]|->|::|<<|>>|<>|=<|=>|\+<|\+:|\?\^|-<|-<!|--<|\?:|-<|--<|k\{\}|v\{\}|\?k|-k'),
     ('NUMBER', r'\d+(\.\d*)?'),
     ('STRING', r'"[^"]*"|\'[^\']*\''),
     ('MLCOMMENT', r'/\*.*?\*/'), 
     ('COMMENT', r'//[^\n]*'),
-    ('SYMBOLIC_MULTI', r'>>>|<<<|1!|0!|!!>|!!|i`\*\*|f`\*\*|s`\*\*|b`\*\*|\+@|@=|~`|~~|\?\?|\?!|<!|-<!|___|\[\.\.\]|->|::|<<|>>|<>|=<|=>|\+<|\+:|\?\^|-<|-<!|--<|\?:|-<|--<|k\{\}|v\{\}|\?k|-k'),
     ('OP', r'\+\+|\%|--|&&|\|\||:=|==|!=|>=|<=|//|\^/|\^|[+\-*/=<>]+'),
     ('SYMBOLIC_SINGLE', r'[!?$@#]'),
     ('ID', r'[a-zA-Z_][a-zA-Z_0-9]*'),
@@ -190,4 +190,5 @@ def lex(code):
         elif kind in ('LPAREN', 'RPAREN', 'LBRACE', 'RBRACE', 'LBRACKET', 'RBRACKET', 'SEMICOLON', 'COMMA', 'OP', 'STRING', 'DOT', 'COLON'):
             yield Token(kind, value, line_num, col_num)
         elif kind == 'MISMATCH':
+
             raise SyntaxError(f'Unexpected character, kozache: {value!r} at line {line_num}, column {col_num}')
