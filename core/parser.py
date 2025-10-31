@@ -569,6 +569,7 @@ class Parser:
     
     def type_cast(self):
         tok = self.expect(self.peek().type)
+        self.check_dialect(tok)
         self.expect('LPAREN')
         expr = self.or_expression()
         self.expect('RPAREN')
@@ -840,4 +841,5 @@ class Parser:
         file_path_expr = self.or_expression()
         self.expect('RPAREN')
         self.expect('SEMICOLON')
+
         return KozakImport(file_path_expr)
