@@ -3,6 +3,7 @@
 import sys
 import os
 import re
+import argparse
 from core.lexer import lex
 from core.parser import Parser
 from core.interpreter import Interpreter
@@ -25,9 +26,29 @@ def print_with_hint(err: str):
 
 if __name__ == '__main__':
     sys.stdout.reconfigure(encoding='utf-8')
+
+    parser = argparse.ArgumentParser(
+        description='KozakScript Interpreter - A multi-dialect programming language',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog='''
+Examples:
+  python main.py program.kozak                  # Run with dialect mixing allowed
+  python main.py program.kozak --strict         # Enforce single dialect
+  python main.py program.kozak -s               # Short form
+        '''
+    )
+    parser.add_argument('file', help='KozakScript file to execute (.kozak extension)')
+    parser.add_argument('--skip-strict', '-s', action='store_true',
+                       help='Enforce strict dialect mode (no mixing dialects)')
+    
+    args = parser.parse_args()
+
     exit_code = 0
     
     try:
+        
+        file_path = args.file
+
         if len(sys.argv) < 2:
             raise ValueError("Ay Ay Ay, Kozache! You must provide a file to run. Example: python main.py my_program.kozak")
 
@@ -40,7 +61,7 @@ if __name__ == '__main__':
             code = f.read()
 
         tokens = list(lex(code))
-        parser = Parser(tokens)
+        parser = Parser(tokens, strict_dialect=not args.skip_strict)
         ast = parser.parse()
 
         if parser.errors:
@@ -48,8 +69,19 @@ if __name__ == '__main__':
             for e in parser.errors:
                 err = str(e)
                 print_with_hint(err)
+
+            if not args.skip_strict and parser.dialect_violations:
+                print(f"\n🚫 Dialect Enforcement: Found {len(parser.dialect_violations)} violation(s)")
+                print(f"   Detected dialect: {parser.detected_dialect}")
+                print("   Govory odnieyu movoyu, kozache! Nichogo ne rozumiyu!")
+                print("   Tip: Use one dialect consistently throughout your program.")
+
             exit_code = 1
         else:
+
+            if not args.skip_strict and parser.detected_dialect:
+                print(f"✓ Dialect check passed: Using {parser.detected_dialect} dialect")
+
             interpreter = Interpreter()
             interpreter.current_file_dir = os.path.dirname(os.path.abspath(file_path))
             try:
