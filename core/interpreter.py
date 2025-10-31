@@ -55,7 +55,7 @@ class ProgramExit(Exception):
         super().__init__(f"Program exited with code {code}")
 
 class Interpreter:
-    def __init__(self):
+    def __init__(self, strict_dialect=False, parent_dialect=None):
         self.scopes = [{}]
         self.env = {}
         self.functions = {}
@@ -64,6 +64,8 @@ class Interpreter:
         self.exit_code = 0
         self.imported_files = set()
         self.current_file_dir = None
+        self.strict_dialect = strict_dialect
+        self.parent_dialect = parent_dialect
 
     def _execute_function_body(self, body, local_env):
         """
@@ -856,7 +858,9 @@ class Interpreter:
             from core.lexer import lex
 
             tokens = list(lex(code))
-            parser = Parser(tokens)
+            parser = Parser(tokens, strict_dialect=self.strict_dialect)
+            if self.strict_dialect and self.parent_dialect:
+                parser.detected_dialect = self.parent_dialect
             ast = parser.parse()
 
             if parser.errors:

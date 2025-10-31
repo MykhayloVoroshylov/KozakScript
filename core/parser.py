@@ -85,7 +85,7 @@ class Parser:
         },
         'symbolic': {
             '>>>', '!', '?', '<!', '$', '~~', '~`',
-            'O', 'X', 'i`**', 'f`**', 's`**', 'b`**',
+            '1!', '0!', 'i`**', 'f`**', 's`**', 'b`**',
             '??', '?!', '!!', '___', '::', '@', '@=',
             '+@', '->', '<<', '>>', '<>', '!!>', '<<<', '#',
             r'k{}', r'v{}', '?k', '-k',
@@ -209,12 +209,15 @@ class Parser:
 
     def parse(self):
         first_token = self.peek()
-        if not (self.peek() and self.peek().type == 'Hetman'):
+
+        if not (first_token and first_token.type == 'Hetman'):
             raise SyntaxError("Be respectful to Hetman: you should always declare him at the start! (line 1, column 1)")
         
 
-        if self.strict_dialect and first_token.value in self.DIALECT_STARTERS:
-            self.detected_dialect = self.DIALECT_STARTERS[first_token.value]
+        if self.strict_dialect:
+            starter_value = first_token.value
+            if starter_value in self.DIALECT_STARTERS:
+                self.detected_dialect = self.DIALECT_STARTERS[starter_value]
 
         self.advance()
         statements = []
@@ -413,8 +416,6 @@ class Parser:
                 if property_token is None:
                     return None # Error handled in expect
 
-                # FIX: Ensure KozakPropertyAccess is created using 'instance' and 'property_name'
-                # This ensures consistency with the AST definition and interpreter logic.
                 expr = KozakPropertyAccess(
                     instance=expr,
                     property_name=property_token.value
@@ -561,7 +562,7 @@ class Parser:
             return self.error(tok, f"Unexpected token in factor: '{tok.value}' at line {tok.line}, column {tok.column}")
     
     def input_expression(self):
-        self.expect('Slukhai')
+        self.expect_with_dialect_check('Slukhai')
         self.expect('LPAREN')
         prompt_expr = self.or_expression()
         self.expect('RPAREN')
@@ -841,5 +842,10 @@ class Parser:
         file_path_expr = self.or_expression()
         self.expect('RPAREN')
         self.expect('SEMICOLON')
-
         return KozakImport(file_path_expr)
+    
+    def expect_with_dialect_check(self, expected_type):
+        tok = self.peek()
+        if tok and tok.type == expected_type:
+            self.check_dialect(tok)
+        return self.expect(expected_type)
