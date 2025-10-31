@@ -7,7 +7,7 @@ Yakscho (computer == 1){
     computer := Ryadok("rock");
 }
 
-AboYakscho (computer == 2){
+Abo_Yakscho (computer == 2){
     computer := Ryadok("paper");
 }
 
@@ -20,7 +20,7 @@ Yakscho(player == "rock") {
         Spivaty("Computer: " + computer);
         Spivaty("Computer won!");
     }
-    AboYakscho(computer == "rock"){
+    Abo_Yakscho(computer == "rock"){
         Spivaty("Computer: " + computer);
         Spivaty("Tie");
     }
@@ -30,12 +30,12 @@ Yakscho(player == "rock") {
     }
 }
 
-AboYakscho(player == "paper"){
+Abo_Yakscho(player == "paper"){
     Yakscho(computer == "paper"){
         Spivaty("Computer: " + computer);
         Spivaty("Tie");
     }
-    AboYakscho(computer == "rock"){
+    Abo_Yakscho(computer == "rock"){
         Spivaty("Computer: " + computer);
         Spivaty("Player won!");
     }
@@ -45,12 +45,12 @@ AboYakscho(player == "paper"){
     }
 }
 
-AboYakscho(player == "scissors"){
+Abo_Yakscho(player == "scissors"){
     Yakscho(computer == "paper"){
         Spivaty("Computer: " + computer);
         Spivaty("Player won!");
     }
-    AboYakscho(computer == "rock"){
+    Abo_Yakscho(computer == "rock"){
         Spivaty("Computer: " + computer);
         Spivaty("Computer won!");
     }
@@ -62,4 +62,5 @@ AboYakscho(player == "scissors"){
 
 Inakshe{
     Spivaty("Invalid entry! Try again!");
+
 }
