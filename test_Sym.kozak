@@ -14,7 +14,7 @@ flag := b`**(1);
 !("Types:", x, y, s, flag);
 
 // Логіка
-if_check := O && X || O;
+if_check := 1! && 0! || 1!;
 !("Logic check:", if_check);
 
 // Умови
@@ -248,3 +248,4 @@ val2 := safeArrayAccess(my_arr, 10);
 xy:= 2;
 ab := xy -1;
 !(ab);
+
