@@ -242,3 +242,113 @@ Spivaty("Value at index 1:", val1);
 
 val2 := safeArrayAccess(my_arr, 10);
 Spivaty("Value at index 10:", val2);
+
+arr23 := [[1,2,3],[4,5,6]];
+Spivaty(arr23[1][2]);
+
+arr23[0][0] := 100;
+Spivaty("Modified Matrix: ", arr23);
+
+mat := stvoryty_matrytsyu(4,5,0);
+Spivaty("Empty matrix: ", mat);
+
+Dlya (i:= 0; i < 4; i++){
+    Dlya (j:= 0; j<5; j++){
+        mat[i][j] := i*5+j;
+    }
+}
+Spivaty("Filled matrix: ", mat);
+
+size := rozmir_matrytsi(mat);
+Spivaty("Rows:", size[0], "Cols:", size[1]);
+
+// Get a specific row
+row := otrymaty_ryadok(mat, 2);
+Spivaty("Row 2:", row);
+
+// Get a specific column
+col := otrymaty_stovpets(mat, 3);
+Spivaty("Column 3:", col);
+
+// Transpose the matrix
+transposed := transportuvaty(mat);
+Spivaty("Transposed:", transposed);
+
+board := stvoryty_matrytsyu(3, 3, "-");
+
+Zavdannya print_board() {
+    Dlya (i := 0; i < 3; i++) {
+        Spivaty(board[i][0], board[i][1], board[i][2]);
+    }
+}
+
+Zavdannya make_move(row, col, player) {
+    Yakscho (row >= 0 && row < 3 && col >= 0 && col < 3) {
+        Yakscho (board[row][col] == "-") {
+            board[row][col] := player;
+            Povernuty Pravda;
+        }
+    }
+    Povernuty Nepravda;
+}
+
+// Play some moves
+make_move(0, 0, "X");
+make_move(1, 1, "O");
+make_move(0, 1, "X");
+make_move(2, 2, "O");
+
+print_board();
+
+// Create a 3D array (e.g., 2x3x4 cube)
+cube := [
+    [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]],
+    [[13, 14, 15, 16], [17, 18, 19, 20], [21, 22, 23, 24]]
+];
+
+// Access 3D element
+value := cube[1][2][3];  // Gets 24
+Spivaty("Element at [1][2][3]:", value);
+
+// Flatten the entire structure
+flat := splushchyty(cube);
+Spivaty("Flattened:", flat);
+
+Zavdannya matrix_add(a, b) {
+    rows := rozmir_matrytsi(a)[0];
+    cols := rozmir_matrytsi(a)[1];
+    result := stvoryty_matrytsyu(rows, cols, 0);
+    
+    Dlya (i := 0; i < rows; i++) {
+        Dlya (j := 0; j < cols; j++) {
+            result[i][j] := a[i][j] + b[i][j];
+        }
+    }
+    
+    Povernuty result;
+}
+
+Zavdannya matrix_multiply_scalar(mat, scalar) {
+    rows := rozmir_matrytsi(mat)[0];
+    cols := rozmir_matrytsi(mat)[1];
+    result := stvoryty_matrytsyu(rows, cols, 0);
+    
+    Dlya (i := 0; i < rows; i++) {
+        Dlya (j := 0; j < cols; j++) {
+            result[i][j] := mat[i][j] * scalar;
+        }
+    }
+    
+    Povernuty result;
+}
+
+m1 := [[1, 2], [3, 4]];
+m2 := [[5, 6], [7, 8]];
+
+sum := matrix_add(m1, m2);
+Spivaty("Sum:", sum);
+
+doubled := matrix_multiply_scalar(m1, 2);
+Spivaty("Doubled:", doubled);
+
+

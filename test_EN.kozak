@@ -242,3 +242,113 @@ Print("Value at index 1:", val1);
 
 val2 := safeArrayAccess(my_arr, 10);
 Print("Value at index 10:", val2);
+
+arr23 := [[1,2,3],[4,5,6]];
+Print(arr23[1][2]);
+
+arr23[0][0] := 100;
+Print("Modified Matrix: ", arr23);
+
+mat := create_matrix(4,5,0);
+Print("Empty matrix: ", mat);
+
+For (i:= 0; i < 4; i++){
+    For (j:= 0; j<5; j++){
+        mat[i][j] := i*5+j;
+    }
+}
+Print("Filled matrix: ", mat);
+
+size := matrix_size(mat);
+Print("Rows:", size[0], "Cols:", size[1]);
+
+// Get a specific row
+row := get_row(mat, 2);
+Print("Row 2:", row);
+
+// Get a specific column
+col := get_col(mat, 3);
+Print("Column 3:", col);
+
+// Transpose the matrix
+transposed := transpose(mat);
+Print("Transposed:", transposed);
+
+board := create_matrix(3, 3, "-");
+
+Function print_board() {
+    For (i := 0; i < 3; i++) {
+        Print(board[i][0], board[i][1], board[i][2]);
+    }
+}
+
+Function make_move(row, col, player) {
+    If (row >= 0 && row < 3 && col >= 0 && col < 3) {
+        If (board[row][col] == "-") {
+            board[row][col] := player;
+            Return Pravda;
+        }
+    }
+    Return Nepravda;
+}
+
+// Play some moves
+make_move(0, 0, "X");
+make_move(1, 1, "O");
+make_move(0, 1, "X");
+make_move(2, 2, "O");
+
+print_board();
+
+// Create a 3D array (e.g., 2x3x4 cube)
+cube := [
+    [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]],
+    [[13, 14, 15, 16], [17, 18, 19, 20], [21, 22, 23, 24]]
+];
+
+// Access 3D element
+value := cube[1][2][3];  // Gets 24
+Print("Element at [1][2][3]:", value);
+
+// Flatten the entire structure
+flat := flatten(cube);
+Print("Flattened:", flat);
+
+Function matrix_add(a, b) {
+    rows := matrix_size(a)[0];
+    cols := matrix_size(a)[1];
+    result := create_matrix(rows, cols, 0);
+    
+    For (i := 0; i < rows; i++) {
+        For (j := 0; j < cols; j++) {
+            result[i][j] := a[i][j] + b[i][j];
+        }
+    }
+    
+    Return result;
+}
+
+Function matrix_multiply_scalar(mat, scalar) {
+    rows := matrix_size(mat)[0];
+    cols := matrix_size(mat)[1];
+    result := create_matrix(rows, cols, 0);
+    
+    For (i := 0; i < rows; i++) {
+        For (j := 0; j < cols; j++) {
+            result[i][j] := mat[i][j] * scalar;
+        }
+    }
+    
+    Return result;
+}
+
+m1 := [[1, 2], [3, 4]];
+m2 := [[5, 6], [7, 8]];
+
+sum := matrix_add(m1, m2);
+Print("Sum:", sum);
+
+doubled := matrix_multiply_scalar(m1, 2);
+Print("Doubled:", doubled);
+
+

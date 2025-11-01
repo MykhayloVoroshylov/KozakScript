@@ -249,3 +249,112 @@ xy:= 2;
 ab := xy -1;
 !(ab);
 
+arr23 := [[1,2,3],[4,5,6]];
+!(arr23[1][2]);
+
+arr23[0][0] := 100;
+!("Modified Matrix: ", arr23);
+
+mat := @[](4,5,0);
+!("Empty matrix: ", mat);
+
+~~ (i:= 0; i < 4; i++){
+    ~~ (j:= 0; j<5; j++){
+        mat[i][j] := i*5+j;
+    }
+}
+!("Filled matrix: ", mat);
+
+size := #[](mat);
+!("Rows:", size[0], "Cols:", size[1]);
+
+// Get a specific row
+row := []->(mat, 2);
+!("Row 2:", row);
+
+// Get a specific column
+col := []|(mat, 3);
+!("Column 3:", col);
+
+// Transpose the matrix
+transposed := []^(mat);
+!("Transposed:", transposed);
+
+board := @[](3, 3, "-");
+
+$ print_board() {
+    ~~ (i := 0; i < 3; i++) {
+        !(board[i][0], board[i][1], board[i][2]);
+    }
+}
+
+$ make_move(row, col, player) {
+    ?? (row >= 0 && row < 3 && col >= 0 && col < 3) {
+        ?? (board[row][col] == "-") {
+            board[row][col] := player;
+            <! Pravda;
+        }
+    }
+    <! Nepravda;
+}
+
+// Play some moves
+make_move(0, 0, "X");
+make_move(1, 1, "O");
+make_move(0, 1, "X");
+make_move(2, 2, "O");
+
+print_board();
+
+// Create a 3D array (e.g., 2x3x4 cube)
+cube := [
+    [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]],
+    [[13, 14, 15, 16], [17, 18, 19, 20], [21, 22, 23, 24]]
+];
+
+// Access 3D element
+value := cube[1][2][3];  // Gets 24
+!("Element at [1][2][3]:", value);
+
+// Flatten the entire structure
+flat := []>(cube);
+!("Flattened:", flat);
+
+$ matrix_add(a, b) {
+    rows := #[](a)[0];
+    cols := #[](a)[1];
+    result := @[](rows, cols, 0);
+    
+    ~~ (i := 0; i < rows; i++) {
+        ~~ (j := 0; j < cols; j++) {
+            result[i][j] := a[i][j] + b[i][j];
+        }
+    }
+    
+    <! result;
+}
+
+$ matrix_multiply_scalar(mat, scalar) {
+    rows := #[](mat)[0];
+    cols := #[](mat)[1];
+    result := @[](rows, cols, 0);
+    
+    ~~ (i := 0; i < rows; i++) {
+        ~~ (j := 0; j < cols; j++) {
+            result[i][j] := mat[i][j] * scalar;
+        }
+    }
+    
+    <! result;
+}
+
+m1 := [[1, 2], [3, 4]];
+m2 := [[5, 6], [7, 8]];
+
+sum := matrix_add(m1, m2);
+!("Sum:", sum);
+
+doubled := matrix_multiply_scalar(m1, 2);
+!("Doubled:", doubled);
+
+
