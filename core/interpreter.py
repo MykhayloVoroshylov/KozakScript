@@ -2,8 +2,9 @@
 import random
 import sys 
 import os
-#from core.lexer import lex
 from core.parser import Parser
+from core.modules.hash import HashModule
+
 
 from core import oop
 
@@ -55,6 +56,7 @@ class ProgramExit(Exception):
         super().__init__(f"Program exited with code {code}")
 
 class Interpreter:
+    
     def __init__(self, strict_dialect=False, parent_dialect=None):
         self.scopes = [{}]
         self.env = {}
@@ -66,6 +68,10 @@ class Interpreter:
         self.current_file_dir = None
         self.strict_dialect = strict_dialect
         self.parent_dialect = parent_dialect
+        self.modules = {
+            "hash": HashModule(),
+            # future: "math": MathModule(), etc.
+        }
 
     def _execute_function_body(self, body, local_env):
         """
@@ -73,7 +79,8 @@ class Interpreter:
         This is necessary for user-defined functions and methods/constructors.
         """
         original_env = self.env
-        self.env = local_env
+        merged_env = {**self.env, **local_env}
+        self.env = merged_env
         try:
             for stmt in body:
                 self.eval(stmt)
@@ -324,6 +331,156 @@ class Interpreter:
 
 
     def _eval_function_call(self, node):
+
+        if '.' in node.name:
+            parts = node.name.split('.', 1)
+            if len(parts) == 2:
+                module_name, method_name = parts
+                # Check if this is a module method call
+                if module_name in self.modules:
+                    module = self.modules[module_name]
+                    if hasattr(module, method_name):
+                        method = getattr(module, method_name)
+                        evaluated_args = [self.eval(arg_node) for arg_node in node.arguments]
+                        return method(*evaluated_args)
+                    
+        if node.name in ('create_matrix', 'stvoryty_matrytsyu', 'sozdat_matritsu', '@[]'):
+            if len(node.arguments) not in (2, 3):
+                raise RuntimeErrorKozak("Function 'create_matrix' expects 2 or 3 arguments (rows, cols, [fill_value]), kozache.")
+            
+            rows = self.eval(node.arguments[0])
+            cols = self.eval(node.arguments[1])
+            fill_value = self.eval(node.arguments[2]) if len(node.arguments) == 3 else 0
+            
+            if not isinstance(rows, int) or not isinstance(cols, int):
+                raise RuntimeErrorKozak("Rows and columns must be integers, kozache.")
+            if rows <= 0 or cols <= 0:
+                raise RuntimeErrorKozak("Matrix dimensions must be positive, kozache.")
+            
+            return [[fill_value for _ in range(cols)] for _ in range(rows)]
+        
+        # Get matrix dimensions
+        if node.name in ('matrix_size', 'rozmir_matrytsi', 'razmer_matritsy', '#[]'):
+            if len(node.arguments) != 1:
+                raise RuntimeErrorKozak("Function 'matrix_size' expects 1 argument, kozache.")
+            
+            matrix = self.eval(node.arguments[0])
+            if not isinstance(matrix, list):
+                raise RuntimeErrorKozak("Argument must be an array, kozache.")
+            
+            if not matrix or not isinstance(matrix[0], list):
+                return [len(matrix), 0]  # 1D array or empty
+            
+            return [len(matrix), len(matrix[0])]
+        
+        # Flatten a multidimensional array
+        if node.name in ('flatten', 'splushchyty', 'spluschit', '[]>'):
+            if len(node.arguments) != 1:
+                raise RuntimeErrorKozak("Function 'flatten' expects 1 argument, kozache.")
+            
+            arr = self.eval(node.arguments[0])
+            if not isinstance(arr, list):
+                raise RuntimeErrorKozak("Argument must be an array, kozache.")
+            
+            def flatten_recursive(lst):
+                result = []
+                for item in lst:
+                    if isinstance(item, list):
+                        result.extend(flatten_recursive(item))
+                    else:
+                        result.append(item)
+                return result
+            
+            return flatten_recursive(arr)
+        
+        # Transpose a 2D matrix
+        if node.name in ('transpose', 'transportuvaty', 'transportirovat', '[]^'):
+            if len(node.arguments) != 1:
+                raise RuntimeErrorKozak("Function 'transpose' expects 1 argument, kozache.")
+            
+            matrix = self.eval(node.arguments[0])
+            if not isinstance(matrix, list) or not matrix:
+                raise RuntimeErrorKozak("Argument must be a non-empty array, kozache.")
+            
+            if not all(isinstance(row, list) for row in matrix):
+                raise RuntimeErrorKozak("Argument must be a 2D array, kozache.")
+            
+            # Check all rows have same length
+            if not all(len(row) == len(matrix[0]) for row in matrix):
+                raise RuntimeErrorKozak("All rows must have the same length for transpose, kozache.")
+            
+            return [[matrix[j][i] for j in range(len(matrix))] for i in range(len(matrix[0]))]
+        
+        # Get row from matrix
+        if node.name in ('get_row', 'otrymaty_ryadok', 'poluchit_stroku', '[]->'):
+            if len(node.arguments) != 2:
+                raise RuntimeErrorKozak("Function 'get_row' expects 2 arguments (matrix, row_index), kozache.")
+            
+            matrix = self.eval(node.arguments[0])
+            row_idx = self.eval(node.arguments[1])
+            
+            if not isinstance(matrix, list):
+                raise RuntimeErrorKozak("First argument must be an array, kozache.")
+            if not isinstance(row_idx, int):
+                raise RuntimeErrorKozak("Row index must be an integer, kozache.")
+            if row_idx < 0 or row_idx >= len(matrix):
+                raise RuntimeErrorKozak("Row index out of bounds, kozache.")
+            
+            return matrix[row_idx]
+        
+        # Get column from matrix
+        if node.name in ('get_col', 'otrymaty_stovpets', 'poluchit_stolbets', '[]|'):
+            if len(node.arguments) != 2:
+                raise RuntimeErrorKozak("Function 'get_col' expects 2 arguments (matrix, col_index), kozache.")
+            
+            matrix = self.eval(node.arguments[0])
+            col_idx = self.eval(node.arguments[1])
+            
+            if not isinstance(matrix, list) or not matrix:
+                raise RuntimeErrorKozak("First argument must be a non-empty array, kozache.")
+            if not isinstance(col_idx, int):
+                raise RuntimeErrorKozak("Column index must be an integer, kozache.")
+            
+            if not all(isinstance(row, list) for row in matrix):
+                raise RuntimeErrorKozak("Argument must be a 2D array, kozache.")
+            
+            if col_idx < 0 or (matrix and col_idx >= len(matrix[0])):
+                raise RuntimeErrorKozak("Column index out of bounds, kozache.")
+            
+            return [row[col_idx] for row in matrix]
+        
+        # Set value at position in multidimensional array
+        if node.name in ('set_at', 'vstanovyty_na', 'ustanovit_na', '[]:='):
+            if len(node.arguments) < 3:
+                raise RuntimeErrorKozak("Function 'set_at' expects at least 3 arguments (array, indices..., value), kozache.")
+            
+            arr = self.eval(node.arguments[0])
+            if not isinstance(arr, list):
+                raise RuntimeErrorKozak("First argument must be an array, kozache.")
+            
+            # All arguments except last are indices, last is the value
+            indices = [self.eval(node.arguments[i]) for i in range(1, len(node.arguments) - 1)]
+            value = self.eval(node.arguments[-1])
+            
+            # Navigate to the target position
+            current = arr
+            for i, idx in enumerate(indices[:-1]):
+                if not isinstance(idx, int):
+                    raise RuntimeErrorKozak(f"Index {i+1} must be an integer, kozache.")
+                if idx < 0 or idx >= len(current):
+                    raise RuntimeErrorKozak(f"Index {i+1} out of bounds, kozache.")
+                current = current[idx]
+            
+            # Set the final value
+            last_idx = indices[-1]
+            if not isinstance(last_idx, int):
+                raise RuntimeErrorKozak("Last index must be an integer, kozache.")
+            if last_idx < 0 or last_idx >= len(current):
+                raise RuntimeErrorKozak("Last index out of bounds, kozache.")
+            
+            current[last_idx] = value
+            return None
+
         
         if node.name == 'remove_key' or node.name == 'vydalyty_klyuch' or node.name == 'udalit_klyuch' or node.name == 'vydalyty_klyuch_sym':
             if len(node.arguments) != 2:
@@ -673,16 +830,33 @@ class Interpreter:
         
         # Handle dictionary assignment: dict[key] := value
         if isinstance(obj, dict):
-            key = self.eval(node.property_name) if not isinstance(node.property_name, (str, int, float)) else node.property_name
+            key = self.eval(node.property_name) if hasattr(node.property_name, '__class__') and node.property_name.__class__.__name__.startswith('Kozak') else node.property_name
             obj[key] = value
+            return value
+        if isinstance(obj, list):
+            if isinstance(node.property_name, int):
+                index = node.property_name
+            else:
+                index = self.eval(node.property_name)
+            
+            if not isinstance(index, int):
+                raise RuntimeErrorKozak("Array index must be an integer!")
+            if index < 0 or index >= len(obj):
+                raise RuntimeErrorKozak("Array index out of bounds!")
+            obj[index] = value
             return value
         
         # Handle object property assignment
         if not isinstance(obj, oop.Instance):
             raise RuntimeErrorKozak(f"Cannot set property '{node.property_name}' on non-object of type {type(obj).__name__}")
-            
-        obj.set(node.property_name, value)
+        if isinstance(node.property_name, str):
+            obj.set(node.property_name, value)
+        else: 
+            prop_name = self.eval(node.property_name)
+            obj.set(str(prop_name), value)
         return value
+    
+        
 
     def _eval_dictionary(self, node):
         result = {}
@@ -827,7 +1001,30 @@ class Interpreter:
         file_path = self.eval(node.file_path)
         if not isinstance(file_path, str):
             raise RuntimeErrorKozak(f"Import file path must be a string, got{type(file_path).__name__} kozache.")
-        
+        built_in_modules = {
+        "hash": "core.modules.hash"
+        }
+
+        if file_path in built_in_modules:
+            module_path = built_in_modules[file_path]
+            try:
+                module = __import__(module_path, fromlist=[''])
+                # Expecting class named e.g., HashModule
+                class_name = ''.join(part.capitalize() for part in file_path.split('_')) + "Module"
+                # Or, simpler — hardcode if you like:
+                # from core.modules.hash_module import HashModule
+                # module_instance = HashModule()
+                if hasattr(module, "HashModule"):
+                    module_instance = module.HashModule()
+                    self.modules[file_path] = module_instance
+                    self.env[file_path] = module_instance
+                    return None
+                else:
+                    raise RuntimeErrorKozak(f"Built-in module '{file_path}' missing 'HashModule' class, kozache.")
+            except Exception as e:
+                raise RuntimeErrorKozak(f"Failed to load built-in module '{file_path}', kozache: {e}")
+
+    
         if self.current_file_dir:
             full_path = os.path.join(self.current_file_dir, file_path)
         else:
@@ -837,6 +1034,8 @@ class Interpreter:
 
         if full_path in self.imported_files:
             return None
+        
+        
         
         if not os.path.exists(full_path):
             raise RuntimeErrorKozak(f"Import file '{full_path}' not found, kozache.")
@@ -889,4 +1088,9 @@ class Interpreter:
         if name in self.functions:
             return self.functions[name]
         raise RuntimeErrorKozak(f'Variable {name} is not defined')
+
+    def import_module(self, name):
+        if name in self.modules:
+            return self.modules[name]
+        raise RuntimeErrorKozak(f"Module '{name}' not found, kozache!")
 

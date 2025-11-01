@@ -63,7 +63,8 @@ class Parser:
             'tsey', 'Sprobuy', 'Piymat', 'Vkintsi', 'Kydaty', 'Vykhid', 'Importuvaty',
             'znachennya', 'maye_klyuch', 'vydalyty_klyuch',
             'dodaty', 'vstavyty', 'vydalyty', 'vyinyaty', 'ochystyty', 'vyrizaty',
-            'mistyt', 'index_z', 'Zapysaty', 'Chytaty'
+            'mistyt', 'index_z', 'Zapysaty', 'Chytaty', 'stvoryty_matrytsyu', 'rozmir_matrytsi', 'splushchyty', 'transportuvaty',
+            'otrymaty_ryadok', 'otrymaty_stovpets', 'vstanovyty_na'
         },
         'english': {
             'Chief', 'Print', 'Input', 'Return', 'Function', 'For', 'While',
@@ -72,7 +73,8 @@ class Parser:
             'new', 'this', 'Try', 'Catch', 'Finally', 'Throw', 'Exit', 'Import',
             'keys', 'values', 'has_key', 'remove_key',
             'append', 'insert', 'remove', 'pop', 'clear', 'slice',
-            'contains', 'index_of', 'Write', 'Read'
+            'contains', 'index_of', 'Write', 'Read', 'create_matrix', 'matrix_size', 'flatten', 'transpose',
+            'get_row', 'get_col', 'set_at'
         },
         'russian': {
             'Ataman', 'Pechatat', 'Vvod', 'Vernut', 'Zadanie', 'Poka',
@@ -81,7 +83,8 @@ class Parser:
             'etot', 'Poprobuy', 'Poymat', 'Nakonets', 'Brosat', 'Vykhod', 'Importirovat',
             'znachennie', 'imeet_klyuch', 'udalit_klyuch',
             'dobavit', 'vstavit', 'udalit', 'vytaschit', 'ochistit', 'vyrezat',
-            'soderzhit', 'index_znachenia', 'Zapisat', 'Chitat'
+            'soderzhit', 'index_znachenia', 'Zapisat', 'Chitat','sozdat_matritsu', 'razmer_matritsy', 'spluschit', 'transportirovat',
+            'poluchit_stroku', 'poluchit_stolbets', 'ustanovit_na'
         },
         'symbolic': {
             '>>>', '!', '?', '<!', '$', '~~', '~`',
@@ -90,7 +93,7 @@ class Parser:
             '+@', '->', '<<', '>>', '<>', '!!>', '<<<', '#',
             r'k{}', r'v{}', '?k', '-k',
             '+<', '+:', '-<', '-<!', '--<', '[..]',
-            '?^', '?:', '=>', '=<'
+            '?^', '?:', '=>', '=<', '@[]', '#[]', '[]>', '[]^', '[]->', '[]|', '[]:='
         }
     }
 
@@ -236,7 +239,7 @@ class Parser:
             return None
         
         if tok.type in ('Yakscho', 'Doki', 'Dlya', 'Zavdannya', 'Sprobuy', 
-                     'Kydaty', 'Vykhid', 'Importuvaty', 'Spivaty', 'Klas'):
+                     'Kydaty', 'Vykhid', 'Importuvaty', 'Spivaty', 'Klas', 'Povernuty'):
             self.check_dialect(tok)
 
         if tok.type == 'Yakscho':
@@ -269,57 +272,23 @@ class Parser:
             return self.import_statement()
 
         if tok.type in ('ID', 'THIS'):
-            next_tok = self.tokens[self.current_token_index + 1] if self.current_token_index + 1 < len(self.tokens) else None
-                
-            is_assignment = next_tok and next_tok.type == 'OP' and next_tok.value == ':='
-            is_dot = next_tok and next_tok.type == 'DOT'
-            is_bracket = next_tok and next_tok.type == 'LBRACKET'  # ADD THIS LINE
-                
-            if is_assignment:
-                result = self.assignment()
+            expr = self.factor()
+            next_tok = self.peek()#self.tokens[self.current_token_index + 1] if self.current_token_index + 1 < len(self.tokens) else None
+            
+            if next_tok and next_tok.type == 'OP' and next_tok.value == ':=':
+                result = self.assignment_from_target(expr)
                 if result is None:
                     return None
-            elif is_bracket:  # ADD THIS BLOCK
-                # Could be dict[key] := value or just dict[key] as expression
-                expr = self.factor()  # This will parse slovnyk[key]
-                next_after = self.peek()
-                if next_after and next_after.type == 'OP' and next_after.value == ':=':
-                    result = self.assignment_from_target(expr)
-                    if result is None:
-                        return None
-                else:
-                    return self.error(tok, f"Unexpected token after indexing at line {tok.line}")
-            elif is_dot:
-                expr = self.factor()
-                    
-                next_after = self.peek()
-                if next_after and next_after.type == 'LPAREN':
-                    if isinstance(expr, KozakPropertyAccess):
-                        args = self.function_call_arguments()
-                        result = KozakFunctionCall(f"{expr.instance.name}.{expr.property_name}", args) if isinstance(expr.instance, KozakVariable) else None
-                        if result is None:
-                            return self.error(tok, "Complex method calls not yet supported")
-                    else:
-                        return self.error(tok, "Expected property access before ()")
-                elif next_after and next_after.type == 'OP' and next_after.value == ':=':
-                    result = self.assignment_from_target(expr)
-                    if result is None:
-                        return None
-                elif isinstance(expr, KozakFunctionCall):
-                    # Method call was already parsed in factor()
-                    result = expr
-                else:
-                    return self.error(tok, f"Unexpected token after property access at line {tok.line}")
-
-                
-            elif next_tok and next_tok.type == 'OP' and next_tok.value in ('++', '--'):
+            elif next_tok and next_tok.type == 'OP' and next_tok.value in('++', '--'):
+                if not isinstance(expr, KozakVariable):
+                    return self.error(tok, f"Increment/decrement only works on simple variables, not on indexed or property access")
                 self.advance()
-                self.advance()
-                result = KozakUnaryOp(next_tok.value, KozakVariable(tok.value))
-            elif next_tok and next_tok.type == 'LPAREN':
-                result = self.function_call()
+                result = KozakUnaryOp(next_tok.value, expr)
+            elif isinstance(expr, KozakFunctionCall):
+                result = expr
             else:
-                return self.error(tok, f"Unexpected ID token in statement: '{tok.value}' at line {tok.line}, column {tok.column}")
+                return self.error(tok, f"Unexpected expression in statement context at line {tok.line}, column {tok.column}")                
+            
         elif tok.type == 'Spivaty':
             result = self.echo()
         elif tok.type == 'Povernuty':
@@ -334,27 +303,6 @@ class Parser:
             
         return result
     
-    def assignment(self):
-        # Instead of just ID, we allow a chain like obj.prop.prop := value
-        target = self.factor()
-
-        op = self.expect('OP')
-        if not op:  # expect() returned None due to error
-            return None
-        if op.value != ':=':
-            return self.error(op, f"Expected ':=', got {op.value} at line {op.line}, column {op.column}")
-
-        expr = self.or_expression()
-
-        # Property assignment case
-        if isinstance(target, KozakPropertyAccess):
-            return KozakPropertyAssign(target.instance, target.property_name, expr)
-        elif isinstance(target, KozakVariable):
-            return KozakAssign(target.name, expr)
-        else:
-            return self.error(op, "Invalid assignment target")
-
-
     def echo(self):
         self.expect('Spivaty')
         self.expect('LPAREN')
@@ -499,9 +447,11 @@ class Parser:
             if self.peek() and self.peek().type == 'LPAREN':
                 arguments = self.function_call_arguments()
                 node = KozakFunctionCall(name, arguments)
-                return node
+            else:
+                node = KozakVariable(name)    
+                #return node
 
-            node = KozakVariable(name)
+            
             while self.peek() and self.peek().type == 'LBRACKET':
                 self.advance()
                 index_expr = self.or_expression()
@@ -613,7 +563,14 @@ class Parser:
     def for_statement(self):
         self.expect('Dlya')
         self.expect('LPAREN')
-        initialization = self.assignment()
+        var_name = self.expect('ID').value
+        if not var_name:
+            return None
+        op = self.expect('OP')
+        if not op or op.value != ':=':
+            return self.error(op, f"Expected ':=' in for loop initialization")
+        init_expr = self.or_expression()
+        initialization = KozakAssign(var_name, init_expr)
         self.expect('SEMICOLON')
         condition = self.or_expression()
         self.expect('SEMICOLON')
