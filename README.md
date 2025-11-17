@@ -1,44 +1,94 @@
 # KozakScript
 
-**[Українська 🇺🇦](README.uk.md) | [Русский 🇷🇺](README.ru.md)**
+**🇺🇦 [Українська](README.uk.md) | 🇷🇺 [Русский](README.ru.md)**
 
-I am a coding enthusiast who decided to make my own programming language prototype. As a Ukrainian, I found it a fun idea, to make a language that reflects my culture, and can be used later, if needed, by professional programmers, or as a way for Ukrainian-speaking people to have an opportunity, which I personally never had: to learn programming with terms and words they are more familiar with, which is why I didn't stop on single HelloWorld program syntax, but went further to make the language actually functional.
+KozakScript is a hobby programming language project inspired by Ukrainian culture and designed to make programming feel more familiar to Ukrainian-speaking learners. What began as a small experiment evolved into a functional language prototype with multiple dialects, its own interpreter, and a bundler that lets users turn their `.kozak` programs into standalone `.exe` applications.
 
-The syntax is mostly similar to C++ and Python with a touch of Pascal. However it has its own unique features, such as the usage of Ukrainian terms for methods, such as 'Spivaty' (sing) for printing, or 'Slukhai' (listen) for input. You can view the syntax examples in test.kozak file, or wait a bit: once I finish version 1.0, I will provide a .txt file with all the syntax rules, and possibly the YouTube videos explaining it. Additionally, you may find examples of programs in the "Examples" folder.
+The language combines elements of **C++**, **Python**, and a touch of **Pascal**, while introducing unique, culturally flavored keywords — for example, `Spivaty` (“sing”) for printing or `Slukhai` (“listen”) for input.  
+As of Version 1.0, KozakScript supports **four dialects**:
 
-This is not a complete version yet — I am still improving it, adding new features, and fixing bugs. Most things are already functional and ready to use, so you can start having fun with it! :)
+- **Ukrainian**  
+- **Russian**  
+- **English**  
+- **Symbolic**
 
-The "test.kozak" file is used to test the features. Please don't modify it; you can create your own files for experimentation (or profesional development, if you wish to do so :) ).
+You can explore example programs in the `Examples` folder or view the syntax in the `test.kozak` file. Once Version 1.0 is finalized, a full syntax reference and documentation will be provided.
 
-___
+---
 
-### Requirements
+## ✨ Current Status
 
-1. Python installed on the computer
+KozakScript is functional and continuously improving. Most core features work reliably, and the interpreter can already run non-trivial programs. You are welcome to experiment, learn, or even build small applications with it.
 
-2. A code editor
+---
 
-___
+## 🔧 Requirements
 
-### How to run
+KozakScript no longer requires Python to be installed on the end-user's system.
 
-**Step 1**:
+However, for bundling programs into `.exe` files, **ResourceHacker** is needed **only if you want to set a custom icon**.
 
-Install python from the official website: https://www.python.org
+### Requirements for Using the Bundler
+- **ResourceHacker** (optional — needed only for setting custom icons)  
+  Users must install it manually.
 
-**Step 2**:
+---
 
-Open the folder "KozakScript" in the code editor (I was testing on VS Code)
+## ▶️ How to Run KozakScript Programs
 
-**Step 3**:
+### **Option 1 — Run with the Interpreter**
+Use the provided interpreter to run any `.kozak` file:
 
-Open Terminal, and type: py main.py [path to the .kozak file] 
+KozakScriptInterpreter.exe path\to\file.kozak
 
-Make sure, you have the extension .kozak at the end of the desired file, otherwise it won't work
+Make sure the file has the `.kozak` extension.
 
-____
+### **Option 2 — Bundle into a Standalone Executable**
+Use the built-in bundler to package your `.kozak` program into a standalone Windows `.exe`.
 
-### Reporting Bugs
+1. Place your `.kozak` file in the project folder.
+2. Run the **Bundler** tool.
+3. (Optional) If you want a custom icon, place `ResourceHacker.exe` in the bundler directory.
 
-If you find any bugs, please report them via GitHub Issues so I can fix them if needed :)
+The resulting `.exe` is fully portable and does *not* require Python.
 
+---
+
+## 🧪 Example Code
+
+Example code:
+
+Hello World (Ukrainian Syntax):
+
+```kozak
+Hetman
+Spivaty("Hello World!);
+```
+Hello World (English Syntax):
+
+```kozak
+Chief
+Print("Hello World!);
+```
+
+Hello World (Russian Syntax):
+
+```kozak
+Attaman
+Pechatat("Hello World!);
+```
+
+Hello World (Symbolic Syntax):
+
+```kozak
+>>>
+!("Hello World!);
+```
+
+Check the `Examples` folder and `test.kozak`, `test_EN.kozak`, `test_RU.kozak`, `test_Sym.kozak` files for more syntax demonstrations for all dialects.
+
+---
+
+## 🐛 Reporting Bugs
+
+If you encounter any issues, please report them via **GitHub Issues** so they can be fixed in future updates.
