@@ -1,6 +1,6 @@
 # KozakScript
 
-**🇺🇦 [Українська](README.uk.md) | 🇷🇺 [Русский](README.ru.md)**
+**[Українська 🇺🇦](README.uk.md) | [Русский 🇷🇺](README.ru.md)**
 
 I am a coding enthusiast who decided to make my own programming language prototype. As a Ukrainian, I found it a fun idea, to make a language that reflects my culture, and can be used later, if needed, by professional programmers, or as a way for Ukrainian-speaking people to have an opportunity, which I personally never had: to learn programming with terms and words they are more familiar with, which is why I didn't stop on single HelloWorld program syntax, but went further to make the language actually functional.
 
