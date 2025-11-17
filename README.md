@@ -2,29 +2,19 @@
 
 **🇺🇦 [Українська](README.uk.md) | 🇷🇺 [Русский](README.ru.md)**
 
-KozakScript is a hobby programming language project inspired by Ukrainian culture and designed to make programming feel more familiar to Ukrainian-speaking learners. What began as a small experiment evolved into a functional language prototype with multiple dialects, its own interpreter, and a bundler that lets users turn their `.kozak` programs into standalone `.exe` applications.
+I am a coding enthusiast who decided to make my own programming language prototype. As a Ukrainian, I found it a fun idea, to make a language that reflects my culture, and can be used later, if needed, by professional programmers, or as a way for Ukrainian-speaking people to have an opportunity, which I personally never had: to learn programming with terms and words they are more familiar with, which is why I didn't stop on single HelloWorld program syntax, but went further to make the language actually functional.
 
-The language combines elements of **C++**, **Python**, and a touch of **Pascal**, while introducing unique, culturally flavored keywords — for example, `Spivaty` (“sing”) for printing or `Slukhai` (“listen”) for input.  
-As of Version 1.0, KozakScript supports **four dialects**:
+The syntax is mostly similar to C++ and Python with a touch of Pascal. However it has its own unique features such as 4 supported dialects (Ukrainian, Russian, English and Symbolic). You can view the syntax examples in test.kozak file, or wait a bit: once I finish version 1.0, I will provide a .txt file with all the syntax rules, and possibly the YouTube videos explaining it. Additionally, you may find examples of programs in the "Examples" folder.
 
-- **Ukrainian**  
-- **Russian**  
-- **English**  
-- **Symbolic**
+This is not a complete version yet — I am still improving it, adding new features, and fixing bugs. Most things are already functional and ready to use, so you can start having fun with it! :)
 
-You can explore example programs in the `Examples` folder or view the syntax in the `test.kozak` file. Once Version 1.0 is finalized, a full syntax reference and documentation will be provided.
-
----
-
-## ✨ Current Status
-
-KozakScript is functional and continuously improving. Most core features work reliably, and the interpreter can already run non-trivial programs. You are welcome to experiment, learn, or even build small applications with it.
+All the files labeled as "test" are used to test the features. Please don't modify it; you can create your own files for experimentation (or profesional development, if you wish to do so :) ).
 
 ---
 
 ## 🔧 Requirements
 
-KozakScript no longer requires Python to be installed on the end-user's system.
+KozakScript used to require Python installed on the end-user machine, but no longer does. 
 
 However, for bundling programs into `.exe` files, **ResourceHacker** is needed **only if you want to set a custom icon**.
 
@@ -89,6 +79,66 @@ Check the `Examples` folder and `test.kozak`, `test_EN.kozak`, `test_RU.kozak`, 
 
 ---
 
+# 📦 Bundling
+
+KozakScript includes a native C++ bundler that allows you to turn any `.kozak` file into a standalone Windows `.exe` application.
+
+Python is **not required** for the bundled executable.
+
+### 🔨 Basic Usage
+
+```bash
+kozak_bundler.exe my_program.kozak
+```
+### 🎨 Custom Icon
+
+```bash
+kozak_bundler.exe my_program.kozak --icon icon.ico
+```
+
+NOTE: You need to have RessourceHacker installed and in the same directory as the bundling files.
+
+If ResourceHacker.exe is not found, the bundler will:
+
+- show a help message explaining what to install
+
+- ask if you want to continue without applying the icon. If you enter 'y' it will bundle with default icon, if you enter 'n' the bundling will stop.
+
+### 📁 Adding Data
+
+Format:
+```bash
+kozak_bundler.exe my_program --add-data source_path;destination_name
+```
+Example:
+```bash
+kozak_bundler.exe game.kozak --add-data config.json;config.json
+```
+
+You can supply multiple --add-data entries:
+```bash
+kozak_bundler.exe game.kozak --add-data config.json;config.json --add-data assets/sprite.png;sprite.png --add-data sounds/hit.wav;hit.wav
+```
+
+📌 Full Example Command
+```bash
+kozak_bundler.exe program.kozak --icon logo.ico --add-data settings.cfg;settings.cfg --add-data levels.dat;levels.dat
+```
+This will:
+
+1. copy the interpreter
+
+2. embed your .kozak script
+
+3. embed assets and linked modules
+
+4. embed additional data files
+
+5. apply the custom icon (if ResourceHacker is installed)
+
+6. produce a final .exe in the build_exe folder
+---
+
 ## 🐛 Reporting Bugs
 
-If you encounter any issues, please report them via **GitHub Issues** so they can be fixed in future updates.
+If you encounter any issues, please report them via **GitHub Issues** so they can be fixed in future updates. If you have any ideas on how can the language be improved (more functionality, more dialects, etc.), state it via **GitHub Issues** so that I can know and add if it is possible. Happy Coding, Kozache :)
