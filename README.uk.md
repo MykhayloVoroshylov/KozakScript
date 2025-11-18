@@ -64,7 +64,7 @@ Print("Hello World!);
 Hello World (Російський Синтаксис):
 
 ```kozak
-Attaman
+Ataman
 Pechatat("Hello World!);
 ```
 
