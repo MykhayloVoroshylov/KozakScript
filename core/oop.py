@@ -2,11 +2,13 @@
 
 class ClassDef:
     """Represents a class definition in KozakScript."""
-    def __init__(self, name, methods, constructor=None, parent_class=None):
+    def __init__(self, name, methods, constructor=None, parent_class=None, field_access=None, method_access=None):
         self.name = name
         self.methods = methods  # dict: method_name -> method_node
         self.constructor = constructor  # Node for Tvir (constructor) if exists
         self.parent_class = parent_class  # ClassDef of parent class if inheritance is used
+        self.field_access = field_access or {}
+        self.method_access = method_access or {}
 
     def find_method(self, name):
         """Recursively search for a method in the class or its ancestors."""
@@ -18,32 +20,81 @@ class ClassDef:
             return self.parent_class.find_method(name)
             
         return None
+    
+    def get_method_access(self, name):
+        """Get the access level of a method"""
+        if name in self.method_access:
+            return self.method_access[name]
+        
+        if self.parent_class:
+            return self.parent_class.get_method_access(name)
+        
+        return 'public'  # default
+    
+    def get_field_access(self, name):
+        """Get the access level of a field"""
+        if name in self.field_access:
+            return self.field_access[name]
+        
+        if self.parent_class:
+            return self.parent_class.get_field_access(name)
+        
+        return 'public'  # default
 
 class Instance:
     """Represents an object instance."""
-    def __init__(self, class_def):
+    def __init__(self, class_def, ):
         self.class_def = class_def
         self.fields = {}  # instance variables
 
-    def get(self, name):
+    def get(self, name, calling_instance=None):
         # First check instance fields
         if name in self.fields:
+            access_level = self.class_def.get_field_access(name)
+            if access_level == 'private':
+                if calling_instance is not self:
+                    raise RuntimeError(f"Cannot access private field '{name}' of class {self.class_def.name}")
+            
+            elif access_level == 'protected':
+                 if calling_instance is not None and not self._is_subclass_of(calling_instance.class_def):
+                    raise RuntimeError(f"Cannot access protected field '{name}' of class {self.class_def.name}")
+            
             return self.fields[name]
         
         method_node = self.class_def.find_method(name)
-        # Then check methods
 
         if method_node:
+            access_level = self.class_def.get_method_access(name)
+            if access_level == 'private':
+                if calling_instance is not self:
+                    raise RuntimeError(f"Cannot access private method '{name}' of class {self.class_def.name}")
+            elif access_level == 'protected':
+                    if calling_instance is not None and not self._is_subclass_of(calling_instance.class_def):
+                        raise RuntimeError(f"Cannot access protected method '{name}' of class {self.class_def.name}")
             return lambda *args: method_node.eval(self, *args)
 
-        # if name in self.class_def.methods:
-        #     method_node = self.class_def.methods[name]
-        #     # Return a callable bound to this instance
-        #     return lambda *args: method_node.eval(self, *args)
         raise RuntimeError(f"Property or method '{name}' not found in instance of {self.class_def.name}")
 
-    def set(self, name, value):
+    def set(self, name, value, calling_instance=None):
+        access_level = self.class_def.get_field_access(name)
+        if access_level == 'private':
+            if calling_instance is not self:
+                raise RuntimeError(f"Cannot modify private field '{name}' of class {self.class_def.name}")
+        elif access_level == 'protected':
+            if calling_instance is not None and not self._is_subclass_of(calling_instance.class_def):
+                raise RuntimeError(f"Cannot modify protected field '{name}' of class {self.class_def.name}")
+        
         self.fields[name] = value
+    
+    def _is_subclass_of(self, other_class_def):
+        """Check if this instance's class is a subclass of another class"""
+        current = self.class_def
+        while current:
+            if current == other_class_def:
+                return True
+            current = current.parent_class
+        return False
+
 
 class ClassTable:
     """Stores all class definitions."""

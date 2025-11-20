@@ -72,6 +72,8 @@ class Interpreter:
             "hash": HashModule(),
             # future: "math": MathModule(), etc.
         }
+        self.scopes = [{}]
+        self.type_constraints = {}
 
     def _execute_function_body(self, body, local_env):
         """
@@ -164,7 +166,44 @@ class Interpreter:
 
     def _eval_assign(self, node):
         value = self.eval(node.expr)
+        if node.type_hint:
+            expected = self._normalize_type(node.type_hint)
+            actual = type(value).__name__
+            if not self._type_matches(actual, expected):
+                raise RuntimeErrorKozak(
+                    f"Type mismatch for '{node.name}': "
+                    f"expected {expected}, got {actual}"
+                )
+            self.type_constraints[node.name] = expected
+        elif node.name in self.type_constraints:
+            expected = self.type_constraints[node.name]
+            actual = type(value).__name__
+            
+            if not self._type_matches(actual, expected):
+                raise RuntimeErrorKozak(
+                    f"Cannot assign {actual} to {expected} variable '{node.name}'"
+                )
+        
         self.env[node.name] = value
+    
+    def _normalize_type(self, kozak_type):
+        """Convert KozakScript type to Python type"""
+        mapping = {
+            'Chyslo': 'int',
+            'DroboveChyslo': 'float',
+            'Ryadok': 'str',
+            'Logika': 'bool'
+        }
+        return mapping.get(kozak_type, kozak_type)
+    
+    def _type_matches(self, actual, expected):
+        """Check if actual type matches expected (with flexibility)"""
+        if expected == actual:
+            return True
+        # Allow int where float expected
+        if expected == 'float' and actual == 'int':
+            return True
+        return False
 
     def _eval_echo(self, node):
         values = []
@@ -688,6 +727,32 @@ class Interpreter:
                 if not method_def or not isinstance(method_def, KozakFunctionDef):
                     raise RuntimeErrorKozak(f"Method '{method_name}' not found in class '{obj.class_def.name}'.")
 
+                # CHECK ACCESS MODIFIERS FOR METHOD CALLS
+                access_level = obj.class_def.get_method_access(method_name)
+                calling_instance = None
+                if 'this' in self.env and isinstance(self.env['this'], oop.Instance):
+                    calling_instance = self.env['this']
+
+                if access_level == 'private':
+                    if calling_instance is not obj:
+                        raise RuntimeErrorKozak(f"Cannot access private method '{method_name}' of class '{obj.class_def.name}'")
+                elif access_level == 'protected':
+                    if calling_instance is not None:
+                        # Check if calling instance is same class or subclass
+                        current = calling_instance.class_def
+                        is_subclass = False
+                        while current:
+                            if current == obj.class_def:
+                                is_subclass = True
+                                break
+                            current = current.parent_class
+                        if not is_subclass:
+                            raise RuntimeErrorKozak(f"Cannot access protected method '{method_name}' of class '{obj.class_def.name}'")
+                    else:
+                        # Called from outside any class context
+                        raise RuntimeErrorKozak(f"Cannot access protected method '{method_name}' of class '{obj.class_def.name}'")
+
+
 
                 # 4. Перевіряємо кількість аргументів
                 if len(evaluated_args) != len(method_def.parameters):
@@ -771,13 +836,83 @@ class Interpreter:
                 parent_class_def = self.class_table.get_class(node.parent_name)
             except Exception:
                 raise RuntimeErrorKozak(f"Parent class '{node.parent_name}' not defined for class '{node.name}'.")
-            
-
 
         constructor = node.methods.get('Tvir')
-        class_def = oop.ClassDef(name=node.name, methods=node.methods, constructor=constructor, parent_class = parent_class_def)
+        class_def = oop.ClassDef(
+            name=node.name, 
+            methods=node.methods, 
+            constructor=constructor, 
+            parent_class=parent_class_def,
+            field_access=node.field_access,
+            method_access=node.method_access
+        )
         self.class_table.define_class(node.name, class_def)
         return class_def
+    
+    def eval_PropertyAccessNode(self, node):
+        """(KozakPropertyAccess) Accesses a field or method on an object instance."""
+        obj = self.eval(node.instance)
+        
+        if not isinstance(obj, oop.Instance):
+            raise RuntimeErrorKozak(f"Cannot access property '{node.property_name}' on non-object of type {type(obj).__name__}")
+        
+        # Determine the calling context (are we accessing from within the same instance?)
+        calling_instance = None
+        # If we're inside a method and accessing 'this', we're in the same instance
+        if 'this' in self.env and isinstance(self.env['this'], oop.Instance):
+            calling_instance = self.env['this']
+        
+        try:
+            return obj.get(node.property_name, calling_instance)
+        except RuntimeError as e:
+            raise RuntimeErrorKozak(str(e))
+        
+    def eval_PropertyAssignNode(self, node):
+        """(KozakPropertyAssign) Assigns a value to a field on an object instance OR dictionary key."""
+        obj = self.eval(node.instance)
+        value = self.eval(node.value)
+        
+        # Handle dictionary assignment
+        if isinstance(obj, dict):
+            key = self.eval(node.property_name) if hasattr(node.property_name, '__class__') and node.property_name.__class__.__name__.startswith('Kozak') else node.property_name
+            obj[key] = value
+            return value
+        
+        # Handle array assignment
+        if isinstance(obj, list):
+            if isinstance(node.property_name, int):
+                index = node.property_name
+            else:
+                index = self.eval(node.property_name)
+            
+            if not isinstance(index, int):
+                raise RuntimeErrorKozak("Array index must be an integer!")
+            if index < 0 or index >= len(obj):
+                raise RuntimeErrorKozak("Array index out of bounds!")
+            obj[index] = value
+            return value
+        
+        # Handle object property assignment
+        if not isinstance(obj, oop.Instance):
+            raise RuntimeErrorKozak(f"Cannot set property '{node.property_name}' on non-object of type {type(obj).__name__}")
+        
+        # Determine calling context
+        calling_instance = None
+        if 'this' in self.env and isinstance(self.env['this'], oop.Instance):
+            calling_instance = self.env['this']
+        
+        try:
+            if isinstance(node.property_name, str):
+                obj.set(node.property_name, value, calling_instance)
+            else: 
+                prop_name = self.eval(node.property_name)
+                obj.set(str(prop_name), value, calling_instance)
+        except RuntimeError as e:
+            raise RuntimeErrorKozak(str(e))
+        
+        return value
+
+
     
     def eval_NewInstanceNode(self, node):
         """(KozakNewInstance) Creates a new object instance."""

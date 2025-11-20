@@ -31,6 +31,9 @@ class KozakFunctionDef:
     name: str
     parameters: list
     body: list
+    param_types: dict = dataclasses.field(default_factory=dict)
+    return_type: str = None
+    access_modifier: str = 'public'
 
 @dataclasses.dataclass (slots=True)
 class KozakFunctionCall:
@@ -67,6 +70,7 @@ class KozakVariable:
 class KozakAssign:
     name: str
     expr: object
+    type_hint: str = None
 
 @dataclasses.dataclass (slots=True)
 class KozakProgram:
@@ -112,6 +116,8 @@ class KozakClass:
     methods: dict
     constructor: object = None
     parent_name: str = None
+    field_access: dict = dataclasses.field(default_factory=dict)
+    method_access: dict = dataclasses.field(default_factory=dict)
 
 @dataclasses.dataclass (slots=True)
 class KozakNewInstance:

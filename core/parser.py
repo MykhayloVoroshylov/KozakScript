@@ -64,7 +64,7 @@ class Parser:
             'znachennya', 'maye_klyuch', 'vydalyty_klyuch',
             'dodaty', 'vstavyty', 'vydalyty', 'vyinyaty', 'ochystyty', 'vyrizaty',
             'mistyt', 'index_z', 'Zapysaty', 'Chytaty', 'stvoryty_matrytsyu', 'rozmir_matrytsi', 'splushchyty', 'transportuvaty',
-            'otrymaty_ryadok', 'otrymaty_stovpets', 'vstanovyty_na'
+            'otrymaty_ryadok', 'otrymaty_stovpets', 'vstanovyty_na', 'Vidkrytyy', 'Zakrytyy', 'Zakhyshchenyy'
         },
         'english': {
             'Chief', 'Print', 'Input', 'Return', 'Function', 'For', 'While',
@@ -74,7 +74,7 @@ class Parser:
             'keys', 'values', 'has_key', 'remove_key',
             'append', 'insert', 'remove', 'pop', 'clear', 'slice',
             'contains', 'index_of', 'Write', 'Read', 'create_matrix', 'matrix_size', 'flatten', 'transpose',
-            'get_row', 'get_col', 'set_at'
+            'get_row', 'get_col', 'set_at', 'Public', 'Private', 'Protected'
         },
         'russian': {
             'Ataman', 'Pechatat', 'Vvod', 'Vernut', 'Zadanie', 'Poka',
@@ -84,7 +84,7 @@ class Parser:
             'znachennie', 'imeet_klyuch', 'udalit_klyuch',
             'dobavit', 'vstavit', 'udalit', 'vytaschit', 'ochistit', 'vyrezat',
             'soderzhit', 'index_znachenia', 'Zapisat', 'Chitat','sozdat_matritsu', 'razmer_matritsy', 'spluschit', 'transportirovat',
-            'poluchit_stroku', 'poluchit_stolbets', 'ustanovit_na'
+            'poluchit_stroku', 'poluchit_stolbets', 'ustanovit_na', 'Otkrytyy', 'Zakrytyy', 'Zashchishchennyy'
         },
         'symbolic': {
             '>>>', '!', '?', '<!', '$', '~~', '~`',
@@ -93,7 +93,7 @@ class Parser:
             '+@', '->', '<<', '>>', '<>', '!!>', '<<<', '#',
             r'k{}', r'v{}', '?k', '-k',
             '+<', '+:', '-<', '-<!', '--<', '[..]',
-            '?^', '?:', '=>', '=<', '@[]', '#[]', '[]>', '[]^', '[]->', '[]|', '[]:='
+            '?^', '?:', '=>', '=<', '@[]', '#[]', '[]>', '[]^', '[]->', '[]|', '[]:=', '++>', '-->', '##>'
         }
     }
 
@@ -241,6 +241,14 @@ class Parser:
         if tok.type in ('Yakscho', 'Doki', 'Dlya', 'Zavdannya', 'Sprobuy', 
                      'Kydaty', 'Vykhid', 'Importuvaty', 'Spivaty', 'Klas', 'Povernuty'):
             self.check_dialect(tok)
+        
+        if tok.type in ('Chyslo', 'Ryadok', 'Logika', 'DroboveChyslo'):
+            type_hint = tok.value
+            self.advance()
+            var_name = self.expect('ID').value
+            self.expect('OP')
+            expr = self.or_expression()
+            return KozakAssign(var_name, expr, type_hint)
 
         if tok.type == 'Yakscho':
             return self.if_statement()
@@ -297,7 +305,8 @@ class Parser:
             return self.class_def()
         else:
             return self.error(tok, f"Unexpected token in statement: '{tok.value}' at line {tok.line}, column {tok.column}")
-
+        
+        
         if result and require_semicolon and not isinstance(result, (KozakIf, KozakWhile, KozakFor, KozakFunctionDef)):
             self.expect('SEMICOLON')
             
@@ -662,7 +671,6 @@ class Parser:
 
         if self.peek() and self.peek().type == 'COLON':
             self.advance()
-
             parent_token = self.expect('ID')
             if not parent_token:
                 return None
@@ -672,9 +680,16 @@ class Parser:
 
         methods = {}
         constructor = None
+        method_access = {}
+        field_access = {}
 
         while self.peek() and self.peek().type != 'RBRACE':
             # Constructors are written as Tvir(...)
+            access_modifier = 'public'
+            if self.peek().type in ('PUBLIC', 'PRIVATE', 'PROTECTED'):
+                access_modifier = self.peek().type.lower()
+                self.advance()
+
             if self.peek().type == 'Tvir':
                 self.advance()
                 self.expect('LPAREN')
@@ -689,17 +704,52 @@ class Parser:
                 body = self.block()
                 constructor = KozakFunctionDef('Tvir', params, body)
                 methods['Tvir'] = constructor
+
             elif self.peek().type == 'Zavdannya':
                 # Regular method
-                method = self.function_def()
+                method = self.function_def_with_access(access_modifier)
                 methods[method.name] = method
+                method_access[method.name] = access_modifier
+            
+            elif self.peek().type in ('Chyslo', 'Ryadok', 'Logika', 'DroboveChyslo'):
+                type_hint = self.peek().type
+                self.advance()
+                field_name = self.expect('ID').value
+                field_access[field_name] = access_modifier
+                self.expect('SEMICOLON')
+
             else:
                 tok = self.peek()
                 self.errors.append(f"Error at line {tok.line}, col {tok.column}: Unexpected token in class body: '{tok.value}'")
                 self.advance()
 
         self.expect('RBRACE')
-        return KozakClass(name = class_name, methods = methods, constructor = constructor, parent_name=parent_name)
+        return KozakClass(
+        name=class_name, 
+        methods=methods, 
+        constructor=constructor, 
+        parent_name=parent_name,
+        field_access=field_access,
+        method_access=method_access
+        )
+    
+    def function_def_with_access(self, access_modifier='public'):
+        """Parse function definition with access modifier already consumed"""
+        self.expect('Zavdannya')
+        name = self.expect('ID').value
+        self.expect('LPAREN')
+        parameters = []
+        if self.peek().type != 'RPAREN':
+            parameters.append(self.expect('ID').value)
+            while self.peek().type == 'COMMA':
+                self.advance()
+                parameters.append(self.expect('ID').value)
+        self.expect('RPAREN')
+        self.expect('LBRACE')
+        body = self.block()
+        return KozakFunctionDef(name, parameters, body, access_modifier=access_modifier)
+
+
     
     def assignment_from_target(self, target):
         """Handle assignment when we've already parsed the left-hand side"""

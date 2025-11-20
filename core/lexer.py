@@ -35,6 +35,9 @@ KEYWORDS = {
     'Kydaty': 'Kydaty',
     'Vykhid' : 'Vykhid',
     'Importuvaty': 'Importuvaty',
+    'Vidkrytyy': 'PUBLIC',
+    'Zakrytyy': 'PRIVATE',
+    'Zakhyshchenyy': 'PROTECTED',
 
     #English keywords KozakScript
     'Chief': 'Hetman', #starting word
@@ -65,6 +68,9 @@ KEYWORDS = {
     'Throw': 'Kydaty',
     'Exit' : 'Vykhid',
     'Import': 'Importuvaty',
+    'Public': 'PUBLIC',
+    'Private': 'PRIVATE',
+    'Protected': 'PROTECTED',
 
     #Russian keywords KozakScript
     'Ataman': 'Hetman',#starting word
@@ -95,6 +101,9 @@ KEYWORDS = {
     'Brosat': 'Kydaty',
     'Vykhod': 'Vykhid',
     'Importirovat': 'Importuvaty',
+    'Otkrytyy': 'PUBLIC',
+    'Zakrytyy': 'PRIVATE',
+    'Zashchishchennyy': 'PROTECTED',
 
 
     #Symbolic dialect keywords KozakScript
@@ -130,10 +139,13 @@ KEYWORDS = {
     r'v{}': 'znachennya_sym', 
     '?k': 'maye_klyuch_sym',
     '-k': 'vydalyty_klyuch_sym',
+    '++>': 'PUBLIC',
+    '-->': 'PRIVATE',
+    '##>': 'PROTECTED',
 }
 
 TOKEN_SPECIFICATION = [
-    ('SYMBOLIC_MULTI', r'>>>|<<<|1!|0!|!!>|!!|i`\*\*|f`\*\*|s`\*\*|b`\*\*|\+@|@=|~`|~~|\?\?|\?!|<!|-<!|___|\[\.\.\]|->|::|<<|>>|<>|=<|=>|\+<|\+:|\?\^|-<|-<!|--<|\?:|-<|--<|k\{\}|v\{\}|\?k|-k|@\[\]|#\[\]|\[\]>|\[\]\^|\[\]->|\[\]\||\[\]:='),
+    ('SYMBOLIC_MULTI', r'>>>|<<<|##>|\+\+>|-->|1!|0!|!!>|!!|i`\*\*|f`\*\*|s`\*\*|b`\*\*|\+@|@=|~`|~~|\?\?|\?!|<!|-<!|___|\[\.\.\]|->|::|<<|>>|<>|=<|=>|\+<|\+:|\?\^|-<|-<!|--<|\?:|-<|--<|k\{\}|v\{\}|\?k|-k|@\[\]|#\[\]|\[\]>|\[\]\^|\[\]->|\[\]\||\[\]:='),
     ('NUMBER', r'\d+(\.\d*)?'),
     ('STRING', r'"[^"]*"|\'[^\']*\''),
     ('MLCOMMENT', r'/\*.*?\*/'), 
