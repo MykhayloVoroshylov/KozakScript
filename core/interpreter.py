@@ -39,7 +39,8 @@ from core.ast import (
     KozakThrow,
     KozakTry,
     KozakExit,
-    KozakImport
+    KozakImport,
+    KozakSuper
 )
 
 class ReturnValue(Exception):
@@ -74,15 +75,18 @@ class Interpreter:
         }
         self.scopes = [{}]
         self.type_constraints = {}
+        self.current_function = None
 
-    def _execute_function_body(self, body, local_env):
+    def _execute_function_body(self, body, local_env, function_name=None):
         """
         Executes a list of statements (a function body) in a given local environment.
         This is necessary for user-defined functions and methods/constructors.
         """
         original_env = self.env
+        original_function = self.current_function
         merged_env = {**self.env, **local_env}
         self.env = merged_env
+        self.current_function = function_name
         try:
             for stmt in body:
                 self.eval(stmt)
@@ -91,6 +95,7 @@ class Interpreter:
             return e.value
         finally:
             self.env = original_env
+            self.current_function = original_function
 
     def eval(self, node):
         if isinstance(node, KozakProgram):
@@ -157,6 +162,8 @@ class Interpreter:
             return self._eval_exit(node)
         elif isinstance(node, KozakImport):
             return self._eval_import(node)
+        elif isinstance(node, KozakSuper):
+            return self._eval_super(node)
         else:
             raise RuntimeErrorKozak(f'Unknown node type: {type(node).__name__}')
 
@@ -763,7 +770,7 @@ class Interpreter:
                 for param, arg_val in zip(method_def.parameters, evaluated_args):
                     local_env[param] = arg_val
                 
-                return self._execute_function_body(method_def.body, local_env)
+                return self._execute_function_body(method_def.body, local_env, function_name=method_name)
         # --- КІНЕЦЬ ЛОГІКИ ДЛЯ ВИКЛИКУ МЕТОДУ ---
 
         # Existing user-defined function handling
@@ -780,7 +787,7 @@ class Interpreter:
         for param, arg_val in zip(func_def.parameters, evaluated_args):
             local_env[param] = arg_val
         
-        return self._execute_function_body(func_def.body, local_env)
+        return self._execute_function_body(func_def.body, local_env, function_name=node.name) 
 
 
     def _eval_array(self, node):
@@ -844,7 +851,8 @@ class Interpreter:
             constructor=constructor, 
             parent_class=parent_class_def,
             field_access=node.field_access,
-            method_access=node.method_access
+            method_access=node.method_access,
+            friends=node.friends
         )
         self.class_table.define_class(node.name, class_def)
         return class_def
@@ -856,17 +864,15 @@ class Interpreter:
         if not isinstance(obj, oop.Instance):
             raise RuntimeErrorKozak(f"Cannot access property '{node.property_name}' on non-object of type {type(obj).__name__}")
         
-        # Determine the calling context (are we accessing from within the same instance?)
         calling_instance = None
-        # If we're inside a method and accessing 'this', we're in the same instance
         if 'this' in self.env and isinstance(self.env['this'], oop.Instance):
             calling_instance = self.env['this']
         
         try:
-            return obj.get(node.property_name, calling_instance)
+            return obj.get(node.property_name, calling_instance, self.current_function)  # ← ADD current_function
         except RuntimeError as e:
             raise RuntimeErrorKozak(str(e))
-        
+
     def eval_PropertyAssignNode(self, node):
         """(KozakPropertyAssign) Assigns a value to a field on an object instance OR dictionary key."""
         obj = self.eval(node.instance)
@@ -896,17 +902,16 @@ class Interpreter:
         if not isinstance(obj, oop.Instance):
             raise RuntimeErrorKozak(f"Cannot set property '{node.property_name}' on non-object of type {type(obj).__name__}")
         
-        # Determine calling context
         calling_instance = None
         if 'this' in self.env and isinstance(self.env['this'], oop.Instance):
             calling_instance = self.env['this']
         
         try:
             if isinstance(node.property_name, str):
-                obj.set(node.property_name, value, calling_instance)
+                obj.set(node.property_name, value, calling_instance, self.current_function)  # ← ADD current_function
             else: 
                 prop_name = self.eval(node.property_name)
-                obj.set(str(prop_name), value, calling_instance)
+                obj.set(str(prop_name), value, calling_instance, self.current_function)  # ← ADD current_function
         except RuntimeError as e:
             raise RuntimeErrorKozak(str(e))
         
@@ -943,54 +948,9 @@ class Interpreter:
                 local_env[param] = arg_val
             
             # Execute constructor body using the instance as 'this'
-            self._execute_function_body(constructor_def.body, local_env)
+            self._execute_function_body(constructor_def.body, local_env, function_name='Tvir')
             
-        return instance
-
-    def eval_PropertyAccessNode(self, node):
-        """(KozakPropertyAccess) Accesses a field or method on an object instance."""
-        # FIX: Use 'instance' instead of 'object'
-        obj = self.eval(node.instance)
-        
-        if not isinstance(obj, oop.Instance):
-            raise RuntimeErrorKozak(f"Cannot access property '{node.property_name}' on non-object of type {type(obj).__name__}")
-            
-        # FIX: Use 'property_name' instead of 'prop_name'
-        return obj.get(node.property_name) 
-
-    def eval_PropertyAssignNode(self, node):
-        """(KozakPropertyAssign) Assigns a value to a field on an object instance OR dictionary key."""
-        obj = self.eval(node.instance)
-        value = self.eval(node.value)
-        
-        # Handle dictionary assignment: dict[key] := value
-        if isinstance(obj, dict):
-            key = self.eval(node.property_name) if hasattr(node.property_name, '__class__') and node.property_name.__class__.__name__.startswith('Kozak') else node.property_name
-            obj[key] = value
-            return value
-        if isinstance(obj, list):
-            if isinstance(node.property_name, int):
-                index = node.property_name
-            else:
-                index = self.eval(node.property_name)
-            
-            if not isinstance(index, int):
-                raise RuntimeErrorKozak("Array index must be an integer!")
-            if index < 0 or index >= len(obj):
-                raise RuntimeErrorKozak("Array index out of bounds!")
-            obj[index] = value
-            return value
-        
-        # Handle object property assignment
-        if not isinstance(obj, oop.Instance):
-            raise RuntimeErrorKozak(f"Cannot set property '{node.property_name}' on non-object of type {type(obj).__name__}")
-        if isinstance(node.property_name, str):
-            obj.set(node.property_name, value)
-        else: 
-            prop_name = self.eval(node.property_name)
-            obj.set(str(prop_name), value)
-        return value
-    
+        return instance   
         
 
     def _eval_dictionary(self, node):
@@ -1228,4 +1188,42 @@ class Interpreter:
         if name in self.modules:
             return self.modules[name]
         raise RuntimeErrorKozak(f"Module '{name}' not found, kozache!")
+
+    def _eval_super(self, node):
+        """Handle super.method() calls"""
+        # Check if we're inside a method context
+        if 'this' not in self.env or not isinstance(self.env['this'], oop.Instance):
+            raise RuntimeErrorKozak("'super' can only be used inside a class method, kozache.")
+        
+        current_instance = self.env['this']
+        current_class = current_instance.class_def
+        
+        # Get the parent class
+        if not current_class.parent_class:
+            raise RuntimeErrorKozak(f"Class '{current_class.name}' has no parent class, kozache.")
+        
+        parent_class = current_class.parent_class
+        
+        # Find the method in the parent class
+        method_def = parent_class.find_method(node.method_name)
+        
+        if not method_def:
+            raise RuntimeErrorKozak(f"Method '{node.method_name}' not found in parent class '{parent_class.name}', kozache.")
+        
+        # Evaluate arguments
+        evaluated_args = [self.eval(arg_node) for arg_node in node.arguments]
+        
+        # Check parameter count
+        if len(evaluated_args) != len(method_def.parameters):
+            raise RuntimeErrorKozak(
+                f"Method '{node.method_name}' expected {len(method_def.parameters)} arguments, "
+                f"but got {len(evaluated_args)}, kozache."
+            )
+        
+        # Execute the parent's method with current instance as 'this'
+        local_env = {"this": current_instance}
+        for param, arg_val in zip(method_def.parameters, evaluated_args):
+            local_env[param] = arg_val
+        
+        return self._execute_function_body(method_def.body, local_env, function_name=node.method_name)
 

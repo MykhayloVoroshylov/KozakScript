@@ -118,6 +118,7 @@ class KozakClass:
     parent_name: str = None
     field_access: dict = dataclasses.field(default_factory=dict)
     method_access: dict = dataclasses.field(default_factory=dict)
+    friends: list = dataclasses.field(default_factory=list)
 
 @dataclasses.dataclass (slots=True)
 class KozakNewInstance:
@@ -169,3 +170,8 @@ class KozakExit:
 @dataclasses.dataclass (slots=True)
 class KozakImport:
     file_path: object
+
+@dataclasses.dataclass (slots=True)
+class KozakSuper:
+    method_name: str
+    arguments: list = dataclasses.field(default_factory=list)

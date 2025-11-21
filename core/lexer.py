@@ -27,8 +27,9 @@ KEYWORDS = {
     'kozhen': 'KOZHEN',
     'Klas': 'Klas',
     'Tvir': 'Tvir',
-    'new': 'NEW',
-    'this': 'THIS',
+    'novyy': 'NEW',
+    'tsey': 'THIS',
+    'Batko': 'SUPER', 
     'Sprobuy': 'Sprobuy',
     'Piymat': 'Piymat',          
     'Vkintsi': 'Vkintsi',        
@@ -38,6 +39,7 @@ KEYWORDS = {
     'Vidkrytyy': 'PUBLIC',
     'Zakrytyy': 'PRIVATE',
     'Zakhyshchenyy': 'PROTECTED',
+    'Druh': 'FRIEND',
 
     #English keywords KozakScript
     'Chief': 'Hetman', #starting word
@@ -60,8 +62,9 @@ KEYWORDS = {
     'each': 'KOZHEN',
     'Class': 'Klas',
     'Constructor': 'Tvir',
-    'novyy': 'NEW',
-    'tsey': 'THIS',
+    'new': 'NEW',
+    'this': 'THIS',
+    'Super': 'SUPER', 
     'Try': 'Sprobuy',
     'Catch': 'Piymat',
     'Finally': 'Vkintsi',
@@ -71,6 +74,7 @@ KEYWORDS = {
     'Public': 'PUBLIC',
     'Private': 'PRIVATE',
     'Protected': 'PROTECTED',
+    'Friend': 'FRIEND',
 
     #Russian keywords KozakScript
     'Ataman': 'Hetman',#starting word
@@ -95,6 +99,7 @@ KEYWORDS = {
     'Tvorenye': 'Tvir',
     'novyy': 'NEW',
     'etot': 'THIS',
+    'Roditel': 'SUPER', 
     'Poprobuy': 'Sprobuy',
     'Poymat': 'Piymat',
     'Nakonets': 'Vkintsi',
@@ -104,6 +109,8 @@ KEYWORDS = {
     'Otkrytyy': 'PUBLIC',
     'Zakrytyy': 'PRIVATE',
     'Zashchishchennyy': 'PROTECTED',
+    'Drug': 'FRIEND',
+    
 
 
     #Symbolic dialect keywords KozakScript
@@ -128,7 +135,7 @@ KEYWORDS = {
     '@': 'Klas',
     '@=': 'Tvir',
     '+@': 'NEW',
-    '->': 'THIS',
+    '->': 'THIS', 
     '<<': 'Sprobuy',
     '>>': 'Piymat',
     '<>': 'Vkintsi',
@@ -142,10 +149,12 @@ KEYWORDS = {
     '++>': 'PUBLIC',
     '-->': 'PRIVATE',
     '##>': 'PROTECTED',
+    '^>': 'SUPER',
+    '<->': 'FRIEND',
 }
 
 TOKEN_SPECIFICATION = [
-    ('SYMBOLIC_MULTI', r'>>>|<<<|##>|\+\+>|-->|1!|0!|!!>|!!|i`\*\*|f`\*\*|s`\*\*|b`\*\*|\+@|@=|~`|~~|\?\?|\?!|<!|-<!|___|\[\.\.\]|->|::|<<|>>|<>|=<|=>|\+<|\+:|\?\^|-<|-<!|--<|\?:|-<|--<|k\{\}|v\{\}|\?k|-k|@\[\]|#\[\]|\[\]>|\[\]\^|\[\]->|\[\]\||\[\]:='),
+    ('SYMBOLIC_MULTI', r'>>>|<<<|<->|##>|\+\+>|-->|\^>|1!|0!|!!>|!!|i`\*\*|f`\*\*|s`\*\*|b`\*\*|\+@|@=|~`|~~|\?\?|\?!|<!|-<!|___|\[\.\.\]|->|::|<<|>>|<>|=<|=>|\+<|\+:|\?\^|-<|-<!|--<|\?:|-<|--<|k\{\}|v\{\}|\?k|-k|@\[\]|#\[\]|\[\]>|\[\]\^|\[\]->|\[\]\||\[\]:='),
     ('NUMBER', r'\d+(\.\d*)?'),
     ('STRING', r'"[^"]*"|\'[^\']*\''),
     ('MLCOMMENT', r'/\*.*?\*/'), 

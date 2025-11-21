@@ -33,7 +33,8 @@ from core.ast import (
     KozakTry,
     KozakThrow,
     KozakExit,
-    KozakImport
+    KozakImport,
+    KozakSuper
 )
 
 from core.lexer import Token
@@ -64,7 +65,7 @@ class Parser:
             'znachennya', 'maye_klyuch', 'vydalyty_klyuch',
             'dodaty', 'vstavyty', 'vydalyty', 'vyinyaty', 'ochystyty', 'vyrizaty',
             'mistyt', 'index_z', 'Zapysaty', 'Chytaty', 'stvoryty_matrytsyu', 'rozmir_matrytsi', 'splushchyty', 'transportuvaty',
-            'otrymaty_ryadok', 'otrymaty_stovpets', 'vstanovyty_na', 'Vidkrytyy', 'Zakrytyy', 'Zakhyshchenyy'
+            'otrymaty_ryadok', 'otrymaty_stovpets', 'vstanovyty_na', 'Vidkrytyy', 'Zakrytyy', 'Zakhyshchenyy', 'Batko', 'Druh'
         },
         'english': {
             'Chief', 'Print', 'Input', 'Return', 'Function', 'For', 'While',
@@ -74,7 +75,7 @@ class Parser:
             'keys', 'values', 'has_key', 'remove_key',
             'append', 'insert', 'remove', 'pop', 'clear', 'slice',
             'contains', 'index_of', 'Write', 'Read', 'create_matrix', 'matrix_size', 'flatten', 'transpose',
-            'get_row', 'get_col', 'set_at', 'Public', 'Private', 'Protected'
+            'get_row', 'get_col', 'set_at', 'Public', 'Private', 'Protected', 'Super', 'Friend'
         },
         'russian': {
             'Ataman', 'Pechatat', 'Vvod', 'Vernut', 'Zadanie', 'Poka',
@@ -84,7 +85,7 @@ class Parser:
             'znachennie', 'imeet_klyuch', 'udalit_klyuch',
             'dobavit', 'vstavit', 'udalit', 'vytaschit', 'ochistit', 'vyrezat',
             'soderzhit', 'index_znachenia', 'Zapisat', 'Chitat','sozdat_matritsu', 'razmer_matritsy', 'spluschit', 'transportirovat',
-            'poluchit_stroku', 'poluchit_stolbets', 'ustanovit_na', 'Otkrytyy', 'Zakrytyy', 'Zashchishchennyy'
+            'poluchit_stroku', 'poluchit_stolbets', 'ustanovit_na', 'Otkrytyy', 'Zakrytyy', 'Zashchishchennyy', 'Roditel', 'Drug'
         },
         'symbolic': {
             '>>>', '!', '?', '<!', '$', '~~', '~`',
@@ -93,7 +94,7 @@ class Parser:
             '+@', '->', '<<', '>>', '<>', '!!>', '<<<', '#',
             r'k{}', r'v{}', '?k', '-k',
             '+<', '+:', '-<', '-<!', '--<', '[..]',
-            '?^', '?:', '=>', '=<', '@[]', '#[]', '[]>', '[]^', '[]->', '[]|', '[]:=', '++>', '-->', '##>'
+            '?^', '?:', '=>', '=<', '@[]', '#[]', '[]>', '[]^', '[]->', '[]|', '[]:=', '++>', '-->', '##>', '^>', '<->'
         }
     }
 
@@ -278,8 +279,18 @@ class Parser:
         
         if tok.type == 'Importuvaty':
             return self.import_statement()
+        
+        if tok.type == 'SUPER':
+            expr = self.factor()
+            next_tok = self.peek()
+            
+            if isinstance(expr, KozakSuper):
+                result = expr
+            else:
+                return self.error(tok, f"Unexpected super usage at line {tok.line}, column {tok.column}")
 
-        if tok.type in ('ID', 'THIS'):
+
+        elif tok.type in ('ID', 'THIS'):
             expr = self.factor()
             next_tok = self.peek()#self.tokens[self.current_token_index + 1] if self.current_token_index + 1 < len(self.tokens) else None
             
@@ -444,6 +455,18 @@ class Parser:
                 return None  # Error already recorded by expect()
             args = self.function_call_arguments()
             return KozakNewInstance(class_name, args)
+        
+        elif tok.type == 'SUPER':
+            self.advance()
+            self.expect('DOT')
+            method_name = self.expect('ID').value
+            
+            if self.peek() and self.peek().type == 'LPAREN':
+                arguments = self.function_call_arguments()
+                return KozakSuper(method_name, arguments)
+            else:
+                return self.error(tok, "Super must be followed by a method call")
+
 
         elif tok.type in ('ID', 'Dovzhyna', 'THIS'):
             self.check_dialect(tok)
@@ -682,6 +705,7 @@ class Parser:
         constructor = None
         method_access = {}
         field_access = {}
+        friends = []
 
         while self.peek() and self.peek().type != 'RBRACE':
             # Constructors are written as Tvir(...)
@@ -689,6 +713,22 @@ class Parser:
             if self.peek().type in ('PUBLIC', 'PRIVATE', 'PROTECTED'):
                 access_modifier = self.peek().type.lower()
                 self.advance()
+            
+            if self.peek().type == 'FRIEND':
+                self.advance()
+                self.expect('COLON')
+                
+                # Parse comma-separated list of friend function names
+                friend_name = self.expect('ID').value
+                friends.append(friend_name)
+                
+                while self.peek() and self.peek().type == 'COMMA':
+                    self.advance()
+                    friend_name = self.expect('ID').value
+                    friends.append(friend_name)
+                
+                self.expect('SEMICOLON')
+                continue
 
             if self.peek().type == 'Tvir':
                 self.advance()
@@ -730,7 +770,8 @@ class Parser:
         constructor=constructor, 
         parent_name=parent_name,
         field_access=field_access,
-        method_access=method_access
+        method_access=method_access,
+        friends=friends
         )
     
     def function_def_with_access(self, access_modifier='public'):
