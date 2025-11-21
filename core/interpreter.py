@@ -4,6 +4,7 @@ import sys
 import os
 from core.parser import Parser
 from core.modules.hash import HashModule
+from core.modules.math_module import MathModule
 
 
 from core import oop
@@ -71,7 +72,8 @@ class Interpreter:
         self.parent_dialect = parent_dialect
         self.modules = {
             "hash": HashModule(),
-            # future: "math": MathModule(), etc.
+            "math": MathModule(),
+            # future modules to come.
         }
         self.scopes = [{}]
         self.type_constraints = {}
@@ -860,6 +862,19 @@ class Interpreter:
     def eval_PropertyAccessNode(self, node):
         """(KozakPropertyAccess) Accesses a field or method on an object instance."""
         obj = self.eval(node.instance)
+        from core.modules.math_module import MathModule
+        from core.modules.hash import HashModule
+        
+        if isinstance(obj, (MathModule, HashModule)):
+            if hasattr(obj, node.property_name):
+                attr = getattr(obj, node.property_name)
+                # If it's a property or constant (not a method), return its value
+                if not callable(attr):
+                    return attr
+                # If it's a method, return it so it can be called
+                return attr
+            else:
+                raise RuntimeErrorKozak(f"Module has no attribute '{node.property_name}'")
         
         if not isinstance(obj, oop.Instance):
             raise RuntimeErrorKozak(f"Cannot access property '{node.property_name}' on non-object of type {type(obj).__name__}")
@@ -1097,25 +1112,29 @@ class Interpreter:
         if not isinstance(file_path, str):
             raise RuntimeErrorKozak(f"Import file path must be a string, got{type(file_path).__name__} kozache.")
         built_in_modules = {
-        "hash": "core.modules.hash"
+        "hash": "core.modules.hash",
+        "math": "core.modules.math_module",
         }
 
         if file_path in built_in_modules:
             module_path = built_in_modules[file_path]
             try:
                 module = __import__(module_path, fromlist=[''])
-                # Expecting class named e.g., HashModule
-                class_name = ''.join(part.capitalize() for part in file_path.split('_')) + "Module"
-                # Or, simpler — hardcode if you like:
-                # from core.modules.hash_module import HashModule
-                # module_instance = HashModule()
-                if hasattr(module, "HashModule"):
-                    module_instance = module.HashModule()
+                # Map module names to their class names
+                class_mapping = {
+                    "hash": "HashModule",
+                    "math": "MathModule"  # ← ADD THIS
+                }
+                class_name = class_mapping.get(file_path)
+                
+                if class_name and hasattr(module, class_name):
+                    module_class = getattr(module, class_name)
+                    module_instance = module_class()
                     self.modules[file_path] = module_instance
                     self.env[file_path] = module_instance
                     return None
                 else:
-                    raise RuntimeErrorKozak(f"Built-in module '{file_path}' missing 'HashModule' class, kozache.")
+                    raise RuntimeErrorKozak(f"Built-in module '{file_path}' missing '{class_name}' class, kozache.")
             except Exception as e:
                 raise RuntimeErrorKozak(f"Failed to load built-in module '{file_path}', kozache: {e}")
 
