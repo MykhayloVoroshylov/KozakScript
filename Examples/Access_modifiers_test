@@ -1,0 +1,39 @@
+Hetman
+
+Klas Person {
+    Vidkrytyy Zavdannya getName() {
+        Povernuty tsey.name;
+    }
+
+    Zakrytyy Zavdannya secret() {
+        Spivaty("This is private!");
+    }
+
+    Zakhyshchenyy Zavdannya familyInfo() {
+        Spivaty("Family only");
+    }
+
+    Vidkrytyy Tvir(n) {
+        tsey.name := n;
+    }
+}
+
+Klas German : Person {
+    Vidkrytyy Tvir(g){
+        tsey.name := g;
+    }
+    Zavdannya familyInfo(){
+        Batko.familyInfo();
+        Povernuty "This is a German";
+    }
+    
+}
+
+p := novyy Person("Ivan");
+Spivaty(p.getName());
+//Spivaty(p.secret()); //error, cannot access private
+//Spivaty(p.familyInfo()); //error, cannot access protected
+
+g := novyy German("Hans");
+Spivaty(g.getName());
+Spivaty(g.familyInfo());
