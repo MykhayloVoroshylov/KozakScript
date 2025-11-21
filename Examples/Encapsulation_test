@@ -1,0 +1,37 @@
+Hetman
+
+Klas BankAccount {
+    Zakrytyy Chyslo balance;
+
+    Druh: audit, inspectAccount;  // Multiple friends
+
+    Vidkrytyy Tvir(initial) {
+        tsey.balance := initial;
+    }
+
+    Vidkrytyy Zavdannya deposit(amount) {
+        tsey.balance := tsey.balance + amount;
+    }
+}
+
+// Friend function can access private members
+Zavdannya audit(account) {
+    Spivaty("Audit: Balance is ", account.balance);  // Works!
+}
+
+Zavdannya inspectAccount(account) {
+    account.balance := account.balance + 100;  // Can modify too!
+    Spivaty("Inspected and added 100");
+}
+
+// Regular function can't access private
+/*Zavdannya steal(account) {
+    Spivaty(account.balance);  // ERROR: Cannot access private field
+}*/
+
+acc := novyy BankAccount(1000);
+audit(acc);           // Works: "Audit: Balance is 1000"
+inspectAccount(acc);  // Works: "Inspected and added 100"
+audit(acc);           // Works: "Audit: Balance is 1100"
+//steal(acc);           // ERROR!
+
