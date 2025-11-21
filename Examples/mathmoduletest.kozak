@@ -1,0 +1,52 @@
+Hetman
+
+Importuvaty("math");
+
+// Constants
+Spivaty("Pi:", math.pi);
+Spivaty("Euler's number:", math.e);
+Spivaty("Tau:", math.tau);
+
+// Trigonometry
+angle := math.radians(45);  // Convert 45 degrees to radians
+Spivaty("sin(45°):", math.sin(angle));
+Spivaty("cos(45°):", math.cos(angle));
+Spivaty("tan(45°):", math.tan(angle));
+
+// Back to degrees
+rad_angle := 1.5708;  // ~90 degrees in radians
+Spivaty("90 degrees:", math.degrees(rad_angle));
+
+// Power and roots
+Spivaty("e^2:", math.exp(2));
+Spivaty("sqrt(16):", math.sqrt(16));
+Spivaty("log(100):", math.log10(100));
+Spivaty("ln(e):", math.log(math.e));
+
+// Rounding
+Spivaty("ceil(4.2):", math.ceil(4.2));
+Spivaty("floor(4.8):", math.floor(4.8));
+Spivaty("round(3.7):", math.round(3.7));
+
+// Special functions
+Spivaty("5! =", math.factorial(5));
+Spivaty("gcd(48, 18):", math.gcd(48, 18));
+Spivaty("C(5,2):", math.comb(5, 2));
+
+// Distance
+point1 := [0, 0];
+point2 := [3, 4];
+Spivaty("Distance:", math.dist(point1, point2));
+
+// Hypot (Pythagorean theorem)
+Spivaty("hypot(3, 4):", math.hypot(3, 4));
+
+// Min/Max/Sum
+numbers := [1, 5, 3, 9, 2];
+Spivaty("Min:", math.min(numbers));
+Spivaty("Max:", math.max(numbers));
+Spivaty("Sum:", math.sum(numbers));
+
+// Check for special values
+Spivaty("Is 5 finite?", math.isfinite(5));
+Spivaty("Is inf finite?", math.isfinite(math.inf));
