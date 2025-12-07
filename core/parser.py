@@ -98,6 +98,53 @@ class Parser:
         }
     }
 
+    KEYWORD_TRANSLATIONS = {
+        # Structure keywords
+        'Hetman': {'ukrainian': 'Hetman', 'english': 'Chief', 'russian': 'Ataman', 'symbolic': '>>>'},
+        'Spivaty': {'ukrainian': 'Spivaty', 'english': 'Print', 'russian': 'Pechatat', 'symbolic': '!'},
+        'Slukhai': {'ukrainian': 'Slukhai', 'english': 'Input', 'russian': 'Vvod', 'symbolic': '?'},
+        'Povernuty': {'ukrainian': 'Povernuty', 'english': 'Return', 'russian': 'Vernut', 'symbolic': '<!'},
+        'Zavdannya': {'ukrainian': 'Zavdannya', 'english': 'Function', 'russian': 'Zadanie', 'symbolic': '$'},
+        'Doki': {'ukrainian': 'Doki', 'english': 'While', 'russian': 'Poka', 'symbolic': '~`'},
+        
+        # Types
+        'Chyslo': {'ukrainian': 'Chyslo', 'english': 'Int', 'russian': 'Chislo', 'symbolic': 'i`**'},
+        'DroboveChyslo': {'ukrainian': 'DroboveChyslo', 'english': 'Float', 'russian': 'DrobnoyeChislo', 'symbolic': 'f`**'},
+        'Ryadok': {'ukrainian': 'Ryadok', 'english': 'Str', 'russian': 'Stroka', 'symbolic': 's`**'},
+        'Logika': {'ukrainian': 'Logika', 'english': 'Bool', 'russian': 'Logika', 'symbolic': 'b`**'},
+        
+        # Control flow
+        'Yakscho': {'ukrainian': 'Yakscho', 'english': 'If', 'russian': 'Yesli', 'symbolic': '??'},
+        'AboYakscho': {'ukrainian': 'Abo_Yakscho', 'english': 'Else_If', 'russian': 'Ili_Yesli', 'symbolic': '?!'},
+        'Inakshe': {'ukrainian': 'Inakshe', 'english': 'Else', 'russian': 'Inache', 'symbolic': '!!'},
+        
+        # OOP
+        'Klas': {'ukrainian': 'Klas', 'english': 'Class', 'russian': 'Klass', 'symbolic': '@'},
+        'Tvir': {'ukrainian': 'Tvir', 'english': 'Constructor', 'russian': 'Tvorenye', 'symbolic': '@='},
+        'NEW': {'ukrainian': 'novyy', 'english': 'new', 'russian': 'novyy', 'symbolic': '+@'},
+        'THIS': {'ukrainian': 'tsey', 'english': 'this', 'russian': 'etot', 'symbolic': '->'},
+        'SUPER': {'ukrainian': 'Batko', 'english': 'Super', 'russian': 'Roditel', 'symbolic': '^>'},
+        
+        # Access modifiers
+        'PUBLIC': {'ukrainian': 'Vidkrytyy', 'english': 'Public', 'russian': 'Otkrytyy', 'symbolic': '++>'},
+        'PRIVATE': {'ukrainian': 'Zakrytyy', 'english': 'Private', 'russian': 'Zakrytyy', 'symbolic': '-->'},
+        'PROTECTED': {'ukrainian': 'Zakhyshchenyy', 'english': 'Protected', 'russian': 'Zashchishchennyy', 'symbolic': '##>'},
+        'FRIEND': {'ukrainian': 'Druh', 'english': 'Friend', 'russian': 'Drug', 'symbolic': '<->'},
+        
+        # Exception handling
+        'Sprobuy': {'ukrainian': 'Sprobuy', 'english': 'Try', 'russian': 'Poprobuy', 'symbolic': '<<'},
+        'Piymat': {'ukrainian': 'Piymat', 'english': 'Catch', 'russian': 'Poymat', 'symbolic': '>>'},
+        'Vkintsi': {'ukrainian': 'Vkintsi', 'english': 'Finally', 'russian': 'Nakonets', 'symbolic': '<>'},
+        'Kydaty': {'ukrainian': 'Kydaty', 'english': 'Throw', 'russian': 'Brosat', 'symbolic': '!!>'},
+        
+        # Other
+        'Vykhid': {'ukrainian': 'Vykhid', 'english': 'Exit', 'russian': 'Vykhod', 'symbolic': '<<<'},
+        'Importuvaty': {'ukrainian': 'Importuvaty', 'english': 'Import', 'russian': 'Importirovat', 'symbolic': '#'},
+        'KOZHEN': {'ukrainian': 'kozhen', 'english': 'each', 'russian': 'kazhdy', 'symbolic': '::'},
+        'Dovzhyna': {'ukrainian': 'dovzhyna', 'english': 'length', 'russian': 'dlinna', 'symbolic': '___'},
+    }
+
+
     def __init__(self, tokens, strict_dialect=False):
         self.tokens = tokens
         self.current_token_index = 0
@@ -114,8 +161,16 @@ class Parser:
         self.synchronize()
         return None
     
+    def get_keyword_translation(self, token_value, target_dialect):
+        """Get the correct keyword for the target dialect"""
+        for key, translations in self.KEYWORD_TRANSLATIONS.items():
+            if token_value in translations.values():
+                return translations.get(target_dialect, token_value)
+        return None
+
+    
     def check_dialect(self, token):
-        """Check and enforce dialect consistency"""
+        """Check and enforce dialect consistency with helpful hints"""
         if not self.strict_dialect:
             return
         
@@ -126,9 +181,14 @@ class Parser:
             if self.detected_dialect in ('ukrainian', 'russian'):
                 return
             else:
+                correct_keyword = self.get_keyword_translation(token.value, self.detected_dialect)
+                hint = ""
+                if correct_keyword:
+                    hint = f"\n     Hint: Replace '{token.value}' with '{correct_keyword}'"
+                
                 violation = (
-                    f"Dialect mixing at line {token.line}, col {token.column}: "
-                    f"Using Slavic keyword '{token.value}' in {self.detected_dialect} program"
+                    f"  ⚠ Line {token.line}, col {token.column}: "
+                    f"Using Slavic keyword '{token.value}' in {self.detected_dialect} program{hint}"
                 )
                 self.dialect_violations.append(violation)
                 self.errors.append(violation)
@@ -141,7 +201,7 @@ class Parser:
                 token_dialect = dialect
                 break
         
-        # Skip tokens that aren't dialect-specific (like numbers, strings, operators)
+        # Skip tokens that aren't dialect-specific
         if token_dialect is None:
             return
         
@@ -152,26 +212,29 @@ class Parser:
         
         # Check for dialect mixing
         if self.detected_dialect != token_dialect:
+            correct_keyword = self.get_keyword_translation(token.value, self.detected_dialect)
+            hint = ""
+            if correct_keyword:
+                hint = f"\n     Hint: Replace '{token.value}' with '{correct_keyword}'"
+            
             violation = (
-                f"Dialect mixing at line {token.line}, col {token.column}: "
-                f"Using {token_dialect} keyword '{token.value}' in {self.detected_dialect} program"
+                f"  ⚠ Line {token.line}, col {token.column}: "
+                f"Using {token_dialect} keyword '{token.value}' in {self.detected_dialect} program{hint}"
             )
             self.dialect_violations.append(violation)
             self.errors.append(violation)
+
     
     def synchronize(self):
         """Skip tokens until we find a good recovery point"""
-        # Just advance past the problematic token
         if not self.is_at_end():
             self.advance()
         
-        # Keep advancing until we hit a statement boundary
         while not self.is_at_end():
             tok = self.peek()
             if not tok:
                 return
             
-            # Stop at these "safe" tokens that start new statements
             if tok.type in ('Zavdannya', 'Yakscho', 'Doki', 'Dlya', 'Klas', 'RBRACE', 'SEMICOLON'):
                 return
             
@@ -200,7 +263,6 @@ class Parser:
             f"  Called from: {caller_info.filename}:{caller_info.lineno} "
             f"in {caller_info.name}()"
         )
-            #print(f"DEBUG: {error_msg}")
             return self.error(token, error_msg)
         else:
             error_msg = (
@@ -292,7 +354,7 @@ class Parser:
 
         elif tok.type in ('ID', 'THIS'):
             expr = self.factor()
-            next_tok = self.peek()#self.tokens[self.current_token_index + 1] if self.current_token_index + 1 < len(self.tokens) else None
+            next_tok = self.peek()
             
             if next_tok and next_tok.type == 'OP' and next_tok.value == ':=':
                 result = self.assignment_from_target(expr)
@@ -377,29 +439,28 @@ class Parser:
             return None
 
         while True:
-            # Handle property access (DOT operator)
             if self.peek() and self.peek().type == 'DOT':
-                self.advance() # Consume the DOT
+                self.advance() 
                 property_token = self.expect('ID')
                 if property_token is None:
-                    return None # Error handled in expect
+                    return None 
 
                 expr = KozakPropertyAccess(
                     instance=expr,
                     property_name=property_token.value
                 )
 
-            # Handle array indexing
+            
             elif self.peek() and self.peek().type == 'LBRACKET':
                 self.advance()
                 index_expr = self.or_expression()
                 self.expect('RBRACKET')
                 expr = KozakArrayIndex(expr, index_expr)
 
-            # Handle function call
+            
             elif self.peek() and self.peek().type == 'LPAREN':
                 if isinstance(expr, KozakVariable):
-                    self.advance() # Consume LPAREN
+                    self.advance() 
                     arguments = self.argument_list()
                     self.expect('RPAREN')
                     expr = KozakFunctionCall(expr.name, arguments)
@@ -430,10 +491,9 @@ class Parser:
 
         if tok.type == 'OP' and tok.value == '-':
             self.advance()
-            operand = self.factor()  # Recursively parse the operand
-            return KozakBinOp(KozakNumber(0), '-', operand)  # Convert -x to 0 - x
+            operand = self.factor()  
+            return KozakBinOp(KozakNumber(0), '-', operand)  
     
-    # Handle unary plus (just ignore it)
         if tok.type == 'OP' and tok.value == '+':
             self.advance()
             return self.factor()
@@ -452,7 +512,7 @@ class Parser:
             self.advance()
             class_name = self.expect('ID').value
             if not class_name:
-                return None  # Error already recorded by expect()
+                return None 
             args = self.function_call_arguments()
             return KozakNewInstance(class_name, args)
         
@@ -481,7 +541,6 @@ class Parser:
                 node = KozakFunctionCall(name, arguments)
             else:
                 node = KozakVariable(name)    
-                #return node
 
             
             while self.peek() and self.peek().type == 'LBRACKET':
@@ -494,10 +553,8 @@ class Parser:
                 prop_name = self.expect('ID').value
                 node = KozakPropertyAccess(node, prop_name)
                 
-                # Check if this property access is followed by a method call
                 if self.peek() and self.peek().type == 'LPAREN':
                     arguments = self.function_call_arguments()
-                    # Convert property access to method call
                     if isinstance(node, KozakPropertyAccess) and isinstance(node.instance, KozakVariable):
                         node = KozakFunctionCall(f"{node.instance.name}.{node.property_name}", arguments)
             return node
@@ -515,8 +572,6 @@ class Parser:
             return KozakArray(elements)
         
         elif tok.type == 'LBRACE':
-        # Check if this is a dictionary or a block
-        # Look ahead to see if we have key:value syntax
             next_tok = self.peek_ahead(1)
             if next_tok and (next_tok.type in ('STRING', 'ID', 'NUMBER') or 
                             (self.peek_ahead(2) and self.peek_ahead(2).type == 'COLON')):
@@ -687,7 +742,7 @@ class Parser:
         self.expect('Klas')
         class_name_token = self.expect('ID')
         if not class_name_token:
-            return None  # Error already recorded by expect()
+            return None  
         
         class_name = class_name_token.value
         parent_name = None
@@ -706,19 +761,19 @@ class Parser:
         method_access = {}
         field_access = {}
         friends = []
+        friend_classes = []
 
         while self.peek() and self.peek().type != 'RBRACE':
-            # Constructors are written as Tvir(...)
             access_modifier = 'public'
             if self.peek().type in ('PUBLIC', 'PRIVATE', 'PROTECTED'):
+                self.check_dialect(self.peek())
                 access_modifier = self.peek().type.lower()
                 self.advance()
             
             if self.peek().type == 'FRIEND':
+                self.check_dialect(self.peek())
                 self.advance()
                 self.expect('COLON')
-                
-                # Parse comma-separated list of friend function names
                 friend_name = self.expect('ID').value
                 friends.append(friend_name)
                 
@@ -729,6 +784,23 @@ class Parser:
                 
                 self.expect('SEMICOLON')
                 continue
+
+            if self.peek().type == 'FRIEND_CLASS':
+                self.check_dialect(self.peek())
+                self.advance()
+                self.expect('COLON')
+                
+                friend_class_name = self.expect('ID').value
+                friend_classes.append(friend_class_name)
+                
+                while self.peek() and self.peek().type == 'COMMA':
+                    self.advance()
+                    friend_class_name = self.expect('ID').value
+                    friend_classes.append(friend_class_name)
+                
+                self.expect('SEMICOLON')
+                continue
+
 
             if self.peek().type == 'Tvir':
                 self.advance()
@@ -746,7 +818,6 @@ class Parser:
                 methods['Tvir'] = constructor
 
             elif self.peek().type == 'Zavdannya':
-                # Regular method
                 method = self.function_def_with_access(access_modifier)
                 methods[method.name] = method
                 method_access[method.name] = access_modifier
@@ -771,7 +842,8 @@ class Parser:
         parent_name=parent_name,
         field_access=field_access,
         method_access=method_access,
-        friends=friends
+        friends=friends,
+        friend_classes=friend_classes
         )
     
     def function_def_with_access(self, access_modifier='public'):
@@ -804,9 +876,7 @@ class Parser:
 
         if isinstance(target, KozakPropertyAccess):
             return KozakPropertyAssign(target.instance, target.property_name, expr)
-        elif isinstance(target, KozakDictionaryAccess):  # ADD THIS
-            # For dict[key] := value, we need special handling
-            # We'll create a special assignment node
+        elif isinstance(target, KozakDictionaryAccess):
             return KozakPropertyAssign(target.dictionary, target.key, expr)
         elif isinstance(target, KozakVariable):
             return KozakAssign(target.name, expr)
@@ -816,17 +886,15 @@ class Parser:
         pairs = []
         
         if self.peek() and self.peek().type != 'RBRACE':
-            # Parse first key:value pair
             key = self.or_expression()
             self.expect('COLON')
             value = self.or_expression()
             pairs.append((key, value))
             
-            # Parse remaining pairs
             while self.peek() and self.peek().type == 'COMMA':
                 self.advance()
                 if self.peek() and self.peek().type == 'RBRACE':
-                    break  # Trailing comma
+                    break
                 key = self.or_expression()
                 self.expect('COLON')
                 value = self.or_expression()

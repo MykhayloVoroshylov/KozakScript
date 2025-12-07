@@ -1,8 +1,6 @@
-"""OOP support for KozakScript."""
-
 class ClassDef:
     """Represents a class definition in KozakScript."""
-    def __init__(self, name, methods, constructor=None, parent_class=None, field_access=None, method_access=None, friends=None):
+    def __init__(self, name, methods, constructor=None, parent_class=None, field_access=None, method_access=None, friends=None, friend_classes=None):
         self.name = name
         self.methods = methods  # dict: method_name -> method_node
         self.constructor = constructor  # Node for Tvir (constructor) if exists
@@ -10,6 +8,7 @@ class ClassDef:
         self.field_access = field_access or {} # dict: field_name -> access_level
         self.method_access = method_access or {} # dict: method_name -> access_level
         self.friends = friends or [] # list of friend function names
+        self.friend_classes = friend_classes or [] # list of friend class names
 
     def find_method(self, name):
         """Recursively search for a method in the class or its ancestors."""
@@ -22,6 +21,17 @@ class ClassDef:
             
         return None
     
+    def is_friend_class(self, class_name):
+        """Check if a class is a friend of this class"""
+        if class_name in self.friend_classes:
+            return True
+        
+        # Check parent class friend classes
+        if self.parent_class:
+            return self.parent_class.is_friend_class(class_name)
+        
+        return False
+
     def get_method_access(self, name):
         """Get the access level of a method"""
         if name in self.method_access:
@@ -52,72 +62,175 @@ class ClassDef:
             return self.parent_class.is_friend(function_name)
         
         return False
+    
+    def get_class_hierarchy(self):
+        """Get list of all classes in inheritance chain (this class and all ancestors)"""
+        hierarchy = [self]
+        current = self.parent_class
+        while current:
+            hierarchy.append(current)
+            current = current.parent_class
+        return hierarchy
 
 
 class Instance:
     """Represents an object instance."""
-    def __init__(self, class_def, ):
+    def __init__(self, class_def):
         self.class_def = class_def
         self.fields = {}  # instance variables
 
+    def _can_access_private(self, calling_instance, calling_function, field_or_method_name):
+        """
+        Check if private member can be accessed.
+        Private members can only be accessed:
+        1. From the same instance (this.field inside methods)
+        2. From friend functions
+        """
+        # Same instance
+        if calling_instance is self:
+            return True
+        
+        # Friend function
+        if calling_function and self.class_def.is_friend(calling_function):
+            return True
+        
+        if calling_instance is not None:
+            calling_class_name = calling_instance.class_def.name
+            if self.class_def.is_friend_class(calling_class_name):
+                return True
+        
+        return False
+    
+    def _can_access_protected(self, calling_instance, calling_function):
+        """
+        Check if protected member can be accessed.
+        Protected members can be accessed:
+        1. From the same class
+        2. From derived classes
+        3. From friend functions
+        """
+        # Friend function
+        if calling_function and self.class_def.is_friend(calling_function):
+            return True
+        
+        if calling_instance is not None:
+            calling_class_name = calling_instance.class_def.name
+            if self.class_def.is_friend_class(calling_class_name):
+                return True
+        
+        # No calling instance means external access
+        if calling_instance is None:
+            return False
+        
+        # Same instance
+        if calling_instance is self:
+            return True
+        
+        # Check if calling instance is from same class or subclass
+        return self._is_in_class_family(calling_instance.class_def)
+    
+    def _is_in_class_family(self, other_class_def):
+        """
+        Check if other_class_def is in the same class family (inheritance chain).
+        This allows derived classes to access protected members.
+        """
+        # Get all classes in this object's hierarchy
+        my_hierarchy = self.class_def.get_class_hierarchy()
+        
+        # Get all classes in the other object's hierarchy
+        other_hierarchy = []
+        current = other_class_def
+        while current:
+            other_hierarchy.append(current)
+            current = current.parent_class
+        
+        # Check if there's any overlap (shared ancestor or one inherits from other)
+        for my_class in my_hierarchy:
+            if my_class in other_hierarchy:
+                return True
+        
+        return False
+
     def get(self, name, calling_instance=None, calling_function=None):
+        """
+        Get a field or method from the instance.
+        
+        Args:
+            name: Field or method name
+            calling_instance: The instance making the call (if called from within a method)
+            calling_function: The function name making the call (for friend checking)
+        """
         # First check instance fields
         if name in self.fields:
             access_level = self.class_def.get_field_access(name)
             
             if access_level == 'private':
-                # Allow if calling function is a friend
-                if calling_function and self.class_def.is_friend(calling_function):
-                    return self.fields[name]
-                
-                if calling_instance is not self:
-                    raise RuntimeError(f"Cannot access private field '{name}' of class {self.class_def.name}")
+                if not self._can_access_private(calling_instance, calling_function, name):
+                    raise RuntimeError(
+                        f"Cannot access private field '{name}' of class '{self.class_def.name}'. "
+                        f"Private fields can only be accessed from within the class or by friend functions."
+                    )
             
             elif access_level == 'protected':
-                # Allow if calling function is a friend
-                if calling_function and self.class_def.is_friend(calling_function):
-                    return self.fields[name]
-                
-                if calling_instance is not None and not self._is_subclass_of(calling_instance.class_def):
-                    raise RuntimeError(f"Cannot access protected field '{name}' of class {self.class_def.name}")
+                if not self._can_access_protected(calling_instance, calling_function):
+                    raise RuntimeError(
+                        f"Cannot access protected field '{name}' of class '{self.class_def.name}'. "
+                        f"Protected fields can only be accessed from the class, derived classes, or friend functions."
+                    )
             
             return self.fields[name]
 
-        
+        # Check for methods
         method_node = self.class_def.find_method(name)
 
         if method_node:
             access_level = self.class_def.get_method_access(name)
+            
             if access_level == 'private':
-                if calling_instance is not self:
-                    raise RuntimeError(f"Cannot access private method '{name}' of class {self.class_def.name}")
+                if not self._can_access_private(calling_instance, calling_function, name):
+                    raise RuntimeError(
+                        f"Cannot access private method '{name}' of class '{self.class_def.name}'. "
+                        f"Private methods can only be called from within the class or by friend functions."
+                    )
+            
             elif access_level == 'protected':
-                    if calling_instance is not None and not self._is_subclass_of(calling_instance.class_def):
-                        raise RuntimeError(f"Cannot access protected method '{name}' of class {self.class_def.name}")
+                if not self._can_access_protected(calling_instance, calling_function):
+                    raise RuntimeError(
+                        f"Cannot access protected method '{name}' of class '{self.class_def.name}'. "
+                        f"Protected methods can only be called from the class, derived classes, or friend functions."
+                    )
+            
             return lambda *args: method_node.eval(self, *args)
 
-        raise RuntimeError(f"Property or method '{name}' not found in instance of {self.class_def.name}")
+        raise RuntimeError(
+            f"Property or method '{name}' not found in instance of '{self.class_def.name}'"
+        )
 
     def set(self, name, value, calling_instance=None, calling_function=None):
+        """
+        Set a field on the instance.
+        
+        Args:
+            name: Field name
+            value: Value to set
+            calling_instance: The instance making the call (if called from within a method)
+            calling_function: The function name making the call (for friend checking)
+        """
         access_level = self.class_def.get_field_access(name)
         
         if access_level == 'private':
-            # Allow if calling function is a friend
-            if calling_function and self.class_def.is_friend(calling_function):
-                self.fields[name] = value
-                return
-            
-            if calling_instance is not self:
-                raise RuntimeError(f"Cannot modify private field '{name}' of class {self.class_def.name}")
+            if not self._can_access_private(calling_instance, calling_function, name):
+                raise RuntimeError(
+                    f"Cannot modify private field '{name}' of class '{self.class_def.name}'. "
+                    f"Private fields can only be modified from within the class or by friend functions."
+                )
         
         elif access_level == 'protected':
-            # Allow if calling function is a friend
-            if calling_function and self.class_def.is_friend(calling_function):
-                self.fields[name] = value
-                return
-            
-            if calling_instance is not None and not self._is_subclass_of(calling_instance.class_def):
-                raise RuntimeError(f"Cannot modify protected field '{name}' of class {self.class_def.name}")
+            if not self._can_access_protected(calling_instance, calling_function):
+                raise RuntimeError(
+                    f"Cannot modify protected field '{name}' of class '{self.class_def.name}'. "
+                    f"Protected fields can only be modified from the class, derived classes, or friend functions."
+                )
         
         self.fields[name] = value
     

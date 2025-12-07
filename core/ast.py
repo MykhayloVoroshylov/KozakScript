@@ -119,6 +119,7 @@ class KozakClass:
     field_access: dict = dataclasses.field(default_factory=dict)
     method_access: dict = dataclasses.field(default_factory=dict)
     friends: list = dataclasses.field(default_factory=list)
+    friend_classes: list = dataclasses.field(default_factory=list)
 
 @dataclasses.dataclass (slots=True)
 class KozakNewInstance:

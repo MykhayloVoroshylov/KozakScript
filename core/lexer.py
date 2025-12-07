@@ -40,6 +40,7 @@ KEYWORDS = {
     'Zakrytyy': 'PRIVATE',
     'Zakhyshchenyy': 'PROTECTED',
     'Druh': 'FRIEND',
+    'DruhKlas': 'FRIEND_CLASS',
 
     #English keywords KozakScript
     'Chief': 'Hetman', #starting word
@@ -75,6 +76,7 @@ KEYWORDS = {
     'Private': 'PRIVATE',
     'Protected': 'PROTECTED',
     'Friend': 'FRIEND',
+    'FriendClass': 'FRIEND_CLASS',
 
     #Russian keywords KozakScript
     'Ataman': 'Hetman',#starting word
@@ -110,7 +112,7 @@ KEYWORDS = {
     'Zakrytyy': 'PRIVATE',
     'Zashchishchennyy': 'PROTECTED',
     'Drug': 'FRIEND',
-    
+    'DrugKlass': 'FRIEND_CLASS',
 
 
     #Symbolic dialect keywords KozakScript
@@ -151,10 +153,11 @@ KEYWORDS = {
     '##>': 'PROTECTED',
     '^>': 'SUPER',
     '<->': 'FRIEND',
+    '<=>': 'FRIEND_CLASS',
 }
 
 TOKEN_SPECIFICATION = [
-    ('SYMBOLIC_MULTI', r'>>>|<<<|<->|##>|\+\+>|-->|\^>|1!|0!|!!>|!!|i`\*\*|f`\*\*|s`\*\*|b`\*\*|\+@|@=|~`|~~|\?\?|\?!|<!|-<!|___|\[\.\.\]|->|::|<<|>>|<>|=<|=>|\+<|\+:|\?\^|-<|-<!|--<|\?:|-<|--<|k\{\}|v\{\}|\?k|-k|@\[\]|#\[\]|\[\]>|\[\]\^|\[\]->|\[\]\||\[\]:='),
+    ('SYMBOLIC_MULTI', r'>>>|<<<|<->|<=>|##>|\+\+>|-->|\^>|1!|0!|!!>|!!|i`\*\*|f`\*\*|s`\*\*|b`\*\*|\+@|@=|~`|~~|\?\?|\?!|<!|-<!|___|\[\.\.\]|->|::|<<|>>|<>|=<|=>|\+<|\+:|\?\^|-<|-<!|--<|\?:|-<|--<|k\{\}|v\{\}|\?k|-k|@\[\]|#\[\]|\[\]>|\[\]\^|\[\]->|\[\]\||\[\]:='),
     ('NUMBER', r'\d+(\.\d*)?'),
     ('STRING', r'"[^"]*"|\'[^\']*\''),
     ('MLCOMMENT', r'/\*.*?\*/'), 

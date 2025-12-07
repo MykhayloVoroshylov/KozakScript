@@ -171,7 +171,9 @@ class Interpreter:
 
     def _eval_program(self, node):
         for stmt in node.statements:
+           # print(f"DEBUG: Evaluating {type(stmt).__name__}")
             self.eval(stmt)
+        
 
     def _eval_assign(self, node):
         value = self.eval(node.expr)
@@ -789,7 +791,7 @@ class Interpreter:
         for param, arg_val in zip(func_def.parameters, evaluated_args):
             local_env[param] = arg_val
         
-        return self._execute_function_body(func_def.body, local_env, function_name=node.name) 
+        return self._execute_function_body(func_def.body, local_env, function_name=node.name)
 
 
     def _eval_array(self, node):
@@ -837,13 +839,16 @@ class Interpreter:
     def _eval_ClassNode(self, node):
         """(KozakClass) Defines a class and stores it in the class_table."""
         # This is the correct method used by eval()
+       # print(f"DEBUG: Defining class '{node.name}'")  # ← ADD THIS
+       # print(f"DEBUG: Friend classes: {node.friend_classes}")  # ← ADD THIS
 
         parent_class_def = None
 
         if node.parent_name: 
             try:
                 parent_class_def = self.class_table.get_class(node.parent_name)
-            except Exception:
+            except Exception as e:
+          #      print(f"DEBUG: Failed to get parent class: {e}")
                 raise RuntimeErrorKozak(f"Parent class '{node.parent_name}' not defined for class '{node.name}'.")
 
         constructor = node.methods.get('Tvir')
@@ -854,9 +859,12 @@ class Interpreter:
             parent_class=parent_class_def,
             field_access=node.field_access,
             method_access=node.method_access,
-            friends=node.friends
+            friends=node.friends,
+            friend_classes=node.friend_classes
         )
         self.class_table.define_class(node.name, class_def)
+       # print(f"DEBUG: Successfully registered class '{node.name}'")  # ← ADD THIS
+       # print(f"DEBUG: Classes in table: {list(self.class_table.classes.keys())}")
         return class_def
     
     def eval_PropertyAccessNode(self, node):
@@ -938,6 +946,8 @@ class Interpreter:
         """(KozakNewInstance) Creates a new object instance."""
         # NOTE: Assuming node.class_name is a string containing the class name
         # If your AST uses node.class_def (the ClassDef node itself), this line needs adjustment
+       # print(f"DEBUG: Trying to create instance of '{node.class_name}'")  # ← ADD THIS
+        #print(f"DEBUG: Available classes: {list(self.class_table.classes.keys())}")
         class_def = self.class_table.get_class(node.class_name) 
         
         if class_def is None:
