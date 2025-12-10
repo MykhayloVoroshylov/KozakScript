@@ -1,9 +1,10 @@
 class ClassDef:
     """Represents a class definition in KozakScript."""
-    def __init__(self, name, methods, constructor=None, parent_class=None, field_access=None, method_access=None, friends=None, friend_classes=None):
+    def __init__(self, name, methods, constructor=None, destructor=None, parent_class=None, field_access=None, method_access=None, friends=None, friend_classes=None, ):
         self.name = name
         self.methods = methods  # dict: method_name -> method_node
         self.constructor = constructor  # Node for Tvir (constructor) if exists
+        self.destructor = destructor  # Node for destructor if exists
         self.parent_class = parent_class  # ClassDef of parent class if inheritance is used
         self.field_access = field_access or {} # dict: field_name -> access_level
         self.method_access = method_access or {} # dict: method_name -> access_level
@@ -78,6 +79,31 @@ class Instance:
     def __init__(self, class_def):
         self.class_def = class_def
         self.fields = {}  # instance variables
+        self._destroyed = False  # flag to indicate if destructor has been called
+
+    def __del__(self):
+        if not self._destroyed and self.class_def.destructor:
+            self._destroyed = True
+
+    def destroy(self, interpreter):
+        if self._destroyed:
+            return
+        self._destroyed = True
+        if self.class_def.destructor:
+            local_env = {"this": self}
+            interpreter._execute_function_body(
+                self.class_def.destructor.body,
+                local_env,
+                function_name = "Znyshchyty"
+            )
+
+    def _check_not_destroyed(self):
+        """Raise error if object has been destroyed"""
+        if self._destroyed:
+            raise RuntimeError(
+                f"Cannot access destroyed instance of class '{self.class_def.name}'. "
+                f"This object has been explicitly destroyed and can no longer be used."
+            )
 
     def _can_access_private(self, calling_instance, calling_function, field_or_method_name):
         """
@@ -161,6 +187,7 @@ class Instance:
             calling_function: The function name making the call (for friend checking)
         """
         # First check instance fields
+        self._check_not_destroyed()
         if name in self.fields:
             access_level = self.class_def.get_field_access(name)
             
@@ -216,6 +243,7 @@ class Instance:
             calling_instance: The instance making the call (if called from within a method)
             calling_function: The function name making the call (for friend checking)
         """
+        self._check_not_destroyed()
         access_level = self.class_def.get_field_access(name)
         
         if access_level == 'private':

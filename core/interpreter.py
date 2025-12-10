@@ -41,7 +41,8 @@ from core.ast import (
     KozakTry,
     KozakExit,
     KozakImport,
-    KozakSuper
+    KozakSuper,
+    KozakDestructor
 )
 
 class ReturnValue(Exception):
@@ -393,6 +394,15 @@ class Interpreter:
                         method = getattr(module, method_name)
                         evaluated_args = [self.eval(arg_node) for arg_node in node.arguments]
                         return method(*evaluated_args)
+        
+        if node.name in ('Znyshchyty', 'Destructor', 'Unichtozhit', '@~'):
+            if len(node.arguments) != 1:
+                raise RuntimeErrorKozak("Function 'Destroy' expects exactly 1 argument, kozache.")
+            obj = self.eval(node.arguments[0])
+            if not isinstance(obj, oop.Instance):
+                raise RuntimeErrorKozak("Can only destroy object instances, kozache.")
+            obj.destroy(self)
+            return None
                     
         if node.name in ('create_matrix', 'stvoryty_matrytsyu', 'sozdat_matritsu', '@[]'):
             if len(node.arguments) not in (2, 3):
@@ -855,7 +865,8 @@ class Interpreter:
         class_def = oop.ClassDef(
             name=node.name, 
             methods=node.methods, 
-            constructor=constructor, 
+            constructor=constructor,
+            destructor=node.destructor, 
             parent_class=parent_class_def,
             field_access=node.field_access,
             method_access=node.method_access,

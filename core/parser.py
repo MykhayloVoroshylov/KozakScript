@@ -34,7 +34,8 @@ from core.ast import (
     KozakThrow,
     KozakExit,
     KozakImport,
-    KozakSuper
+    KozakSuper,
+    KozakDestructor
 )
 
 from core.lexer import Token
@@ -65,7 +66,8 @@ class Parser:
             'znachennya', 'maye_klyuch', 'vydalyty_klyuch',
             'dodaty', 'vstavyty', 'vydalyty', 'vyinyaty', 'ochystyty', 'vyrizaty',
             'mistyt', 'index_z', 'Zapysaty', 'Chytaty', 'stvoryty_matrytsyu', 'rozmir_matrytsi', 'splushchyty', 'transportuvaty',
-            'otrymaty_ryadok', 'otrymaty_stovpets', 'vstanovyty_na', 'Vidkrytyy', 'Zakrytyy', 'Zakhyshchenyy', 'Batko', 'Druh'
+            'otrymaty_ryadok', 'otrymaty_stovpets', 'vstanovyty_na', 'Vidkrytyy', 'Zakrytyy', 'Zakhyshchenyy', 'Batko', 'Druh',
+            'Znyshchyty'
         },
         'english': {
             'Chief', 'Print', 'Input', 'Return', 'Function', 'For', 'While',
@@ -75,7 +77,7 @@ class Parser:
             'keys', 'values', 'has_key', 'remove_key',
             'append', 'insert', 'remove', 'pop', 'clear', 'slice',
             'contains', 'index_of', 'Write', 'Read', 'create_matrix', 'matrix_size', 'flatten', 'transpose',
-            'get_row', 'get_col', 'set_at', 'Public', 'Private', 'Protected', 'Super', 'Friend'
+            'get_row', 'get_col', 'set_at', 'Public', 'Private', 'Protected', 'Super', 'Friend', 'Destroy'
         },
         'russian': {
             'Ataman', 'Pechatat', 'Vvod', 'Vernut', 'Zadanie', 'Poka',
@@ -85,7 +87,8 @@ class Parser:
             'znachennie', 'imeet_klyuch', 'udalit_klyuch',
             'dobavit', 'vstavit', 'udalit', 'vytaschit', 'ochistit', 'vyrezat',
             'soderzhit', 'index_znachenia', 'Zapisat', 'Chitat','sozdat_matritsu', 'razmer_matritsy', 'spluschit', 'transportirovat',
-            'poluchit_stroku', 'poluchit_stolbets', 'ustanovit_na', 'Otkrytyy', 'Zakrytyy', 'Zashchishchennyy', 'Roditel', 'Drug'
+            'poluchit_stroku', 'poluchit_stolbets', 'ustanovit_na', 'Otkrytyy', 'Zakrytyy', 'Zashchishchennyy', 'Roditel', 'Drug',
+            'Unichtozhit'
         },
         'symbolic': {
             '>>>', '!', '?', '<!', '$', '~~', '~`',
@@ -94,7 +97,7 @@ class Parser:
             '+@', '->', '<<', '>>', '<>', '!!>', '<<<', '#',
             r'k{}', r'v{}', '?k', '-k',
             '+<', '+:', '-<', '-<!', '--<', '[..]',
-            '?^', '?:', '=>', '=<', '@[]', '#[]', '[]>', '[]^', '[]->', '[]|', '[]:=', '++>', '-->', '##>', '^>', '<->'
+            '?^', '?:', '=>', '=<', '@[]', '#[]', '[]>', '[]^', '[]->', '[]|', '[]:=', '++>', '-->', '##>', '^>', '<->', '@~'
         }
     }
 
@@ -124,7 +127,8 @@ class Parser:
         'NEW': {'ukrainian': 'novyy', 'english': 'new', 'russian': 'novyy', 'symbolic': '+@'},
         'THIS': {'ukrainian': 'tsey', 'english': 'this', 'russian': 'etot', 'symbolic': '->'},
         'SUPER': {'ukrainian': 'Batko', 'english': 'Super', 'russian': 'Roditel', 'symbolic': '^>'},
-        
+        'Destructor': {'ukrainian': 'Znyshchyty', 'english': 'Destructor', 'russian': 'Unichtozhit', 'symbolic': '@~'},
+
         # Access modifiers
         'PUBLIC': {'ukrainian': 'Vidkrytyy', 'english': 'Public', 'russian': 'Otkrytyy', 'symbolic': '++>'},
         'PRIVATE': {'ukrainian': 'Zakrytyy', 'english': 'Private', 'russian': 'Zakrytyy', 'symbolic': '-->'},
@@ -306,6 +310,7 @@ class Parser:
             self.check_dialect(tok)
         
         if tok.type in ('Chyslo', 'Ryadok', 'Logika', 'DroboveChyslo'):
+            self.check_dialect(tok)
             type_hint = tok.value
             self.advance()
             var_name = self.expect('ID').value
@@ -314,35 +319,46 @@ class Parser:
             return KozakAssign(var_name, expr, type_hint)
 
         if tok.type == 'Yakscho':
+            self.check_dialect(tok)
             return self.if_statement()
         elif tok.type == 'Doki':
+            self.check_dialect(tok)
             return self.while_statement()
         elif tok.type == 'Dlya':
+            self.check_dialect(tok)
             next_tok = self.peek_ahead(1)
             next_next_tok = self.peek_ahead(2)
             
             if next_tok and next_tok.type == 'ID' and next_next_tok and next_next_tok.type == 'KOZHEN':
+                self.check_dialect(tok)
                 return self.for_each_statement()
             else:
+                self.check_dialect(tok)
                 return self.for_statement()
 
         elif tok.type == 'Zavdannya':
+            self.check_dialect(tok)
             return self.function_def()
         
         result = None
 
         if tok.type == 'Sprobuy':
+            self.check_dialect(tok)
             return self.try_statement()
         elif tok.type == 'Kydaty':
+            self.check_dialect(tok)
             return self.throw_statement()
         
         if tok.type == 'Vykhid':
+            self.check_dialect(tok)
             return self.exit_statement()
         
         if tok.type == 'Importuvaty':
+            self.check_dialect(tok)
             return self.import_statement()
         
         if tok.type == 'SUPER':
+            self.check_dialect(tok)
             expr = self.factor()
             next_tok = self.peek()
             
@@ -371,10 +387,13 @@ class Parser:
                 return self.error(tok, f"Unexpected expression in statement context at line {tok.line}, column {tok.column}")                
             
         elif tok.type == 'Spivaty':
+            self.check_dialect(tok)
             result = self.echo()
         elif tok.type == 'Povernuty':
+            self.check_dialect(tok)
             return self.return_statement()
         elif tok.type == 'Klas':
+            self.check_dialect(tok)
             return self.class_def()
         else:
             return self.error(tok, f"Unexpected token in statement: '{tok.value}' at line {tok.line}, column {tok.column}")
@@ -503,12 +522,15 @@ class Parser:
             self.advance()
             return KozakNumber(tok.value)
         elif tok.type == 'Pravda':
+            self.check_dialect(tok)
             self.advance()
             return KozakBoolean(True)
         elif tok.type == 'Nepravda':
+            self.check_dialect(tok)
             self.advance()
             return KozakBoolean(False)
         elif tok.type == 'NEW':
+            self.check_dialect(tok)
             self.advance()
             class_name = self.expect('ID').value
             if not class_name:
@@ -517,6 +539,7 @@ class Parser:
             return KozakNewInstance(class_name, args)
         
         elif tok.type == 'SUPER':
+            self.check_dialect(tok)
             self.advance()
             self.expect('DOT')
             method_name = self.expect('ID').value
@@ -758,6 +781,7 @@ class Parser:
 
         methods = {}
         constructor = None
+        destructor = None
         method_access = {}
         field_access = {}
         friends = []
@@ -803,6 +827,7 @@ class Parser:
 
 
             if self.peek().type == 'Tvir':
+                self.check_dialect(self.peek())
                 self.advance()
                 self.expect('LPAREN')
                 params = []
@@ -816,6 +841,15 @@ class Parser:
                 body = self.block()
                 constructor = KozakFunctionDef('Tvir', params, body)
                 methods['Tvir'] = constructor
+
+            elif self.peek().type == 'ID' and self.peek().value in ('Znyshchyty', 'Destructor', 'Unichtozhit', '@~'):
+                self.check_dialect(self.peek())
+                self.advance()
+                self.expect('LPAREN')
+                self.expect('RPAREN')
+                self.expect('LBRACE')
+                body = self.block()
+                destructor = KozakDestructor(body)
 
             elif self.peek().type == 'Zavdannya':
                 method = self.function_def_with_access(access_modifier)
@@ -838,7 +872,8 @@ class Parser:
         return KozakClass(
         name=class_name, 
         methods=methods, 
-        constructor=constructor, 
+        constructor=constructor,
+        destructor=destructor, 
         parent_name=parent_name,
         field_access=field_access,
         method_access=method_access,

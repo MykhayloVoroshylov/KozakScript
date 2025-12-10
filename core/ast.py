@@ -115,6 +115,7 @@ class KozakClass:
     name: str
     methods: dict
     constructor: object = None
+    destructor: object = None
     parent_name: str = None
     field_access: dict = dataclasses.field(default_factory=dict)
     method_access: dict = dataclasses.field(default_factory=dict)
@@ -176,3 +177,7 @@ class KozakImport:
 class KozakSuper:
     method_name: str
     arguments: list = dataclasses.field(default_factory=list)
+
+@dataclasses.dataclass (slots=True)
+class KozakDestructor:
+    body: list
