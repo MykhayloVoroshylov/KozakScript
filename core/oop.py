@@ -88,14 +88,19 @@ class Instance:
     def destroy(self, interpreter):
         if self._destroyed:
             return
-        self._destroyed = True
+        
         if self.class_def.destructor:
             local_env = {"this": self}
-            interpreter._execute_function_body(
-                self.class_def.destructor.body,
-                local_env,
-                function_name = "Znyshchyty"
-            )
+            try:
+                interpreter._execute_function_body(
+                    self.class_def.destructor.body,
+                    local_env,
+                    function_name = "Destructor"
+                )
+            finally:
+                self._destroyed = True
+        else:
+            self._destroyed = True
 
     def _check_not_destroyed(self):
         """Raise error if object has been destroyed"""

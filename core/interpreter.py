@@ -397,7 +397,7 @@ class Interpreter:
         
         if node.name in ('Znyshchyty', 'Destructor', 'Unichtozhit', '@~'):
             if len(node.arguments) != 1:
-                raise RuntimeErrorKozak("Function 'Destroy' expects exactly 1 argument, kozache.")
+                raise RuntimeErrorKozak("Function 'Destructor' expects exactly 1 argument, kozache.")
             obj = self.eval(node.arguments[0])
             if not isinstance(obj, oop.Instance):
                 raise RuntimeErrorKozak("Can only destroy object instances, kozache.")
@@ -1266,4 +1266,3 @@ class Interpreter:
             local_env[param] = arg_val
         
         return self._execute_function_body(method_def.body, local_env, function_name=node.method_name)
-
