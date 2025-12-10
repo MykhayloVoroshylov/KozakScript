@@ -145,6 +145,7 @@ def print_with_hint(err: str):
             break
 
 
+
 def run_code(code, strict_dialect=False, data_dir=None):
     """Execute KozakScript code"""
     exit_code = 0
@@ -154,10 +155,12 @@ def run_code(code, strict_dialect=False, data_dir=None):
     if data_dir:
         os.chdir(data_dir)
     
+    import traceback
     try:
         tokens = list(lex(code))
         parser = Parser(tokens, strict_dialect=strict_dialect)
         ast = parser.parse()
+        
 
         if parser.errors:
             print("Bida, kozache! Errors found:")
@@ -192,7 +195,12 @@ def run_code(code, strict_dialect=False, data_dir=None):
             except ProgramExit as e:
                 exit_code = e.code
                 print(f"\nProgram exited with code {exit_code}, kozache!")
-                
+
+    # except Exception as e:
+    #     print("FULL TRACEBACK:")
+    #     traceback.print_exc()
+    #     raise
+            
     except RuntimeErrorKozak as e:
         print("Bida, kozache! Runtime error:")
         print_with_hint(str(e))
