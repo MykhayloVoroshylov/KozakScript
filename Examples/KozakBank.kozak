@@ -1,6 +1,13 @@
 Hetman
 
+Importuvaty("hash");
+
 Klas Rahunok{
+    Zakhyshchenyy Chyslo balance;
+    Zakhyshchenyy Ryadok type;
+    Zakhyshchenyy DroboveChyslo interest_rate;
+
+    DruhKlas: AdminRahunok;
 
     Tvir(account, balance, type){
         tsey.account := account;
@@ -8,6 +15,23 @@ Klas Rahunok{
         tsey.interest_rate := 0.0;
         tsey.type := type;
     }
+
+    Zavdannya GetBalance(){
+        Povernuty tsey.balance;
+    }
+
+    Zavdannya GetType(){
+        Povernuty tsey.type;
+    }
+
+    Zavdannya GetAccount(){
+        Povernuty tsey.account;
+    }
+
+    Zavdannya GetInterestRate(){
+        Povernuty tsey.interest_rate;
+    }
+
     Zavdannya Deposit(){
         deposit := DroboveChyslo(Slukhai("Enter the deposit: "));
         tsey.balance := tsey.balance + deposit;
@@ -96,6 +120,7 @@ Klas ZaoshchadnyyRahunok : Rahunok {
 
 Klas AdminRahunok : Rahunok {
     
+    Zakrytyy Ryadok password;
     // Constructor (Tvir) - Only needs a name, as its balance is not relevant
     Tvir(account, password){
         tsey.account := account;
@@ -105,10 +130,8 @@ Klas AdminRahunok : Rahunok {
     }
 
     Zavdannya AdminLogin(attempted_password){
-        // When you add your Hashing module (Modul Hash), you'll change this line:
-        // Yakscho(Hash.Check(attempted_password, this.password)){...}
         
-        Yakscho(tsey.password == attempted_password){
+        Yakscho(tsey.password == hash.sha256(attempted_password)){
             Spivaty("✅ SUCCESS: Admin login successful!");
             Povernuty Pravda; // Return true on success
         }
@@ -172,10 +195,10 @@ Klas AdminRahunok : Rahunok {
 
     Zavdannya CheckAccounts(all_accounts){
         Dlya account kozhen all_accounts {
-        Spivaty("Account Name in Array: " + account.account);
-        Spivaty("Account Balance: " + account.balance);
-        Spivaty("Account Type: " + account.type);
-        Yakscho(account.type == "Savings"){
+        Spivaty("Account Name in Array: " + account.GetAccount());
+        Spivaty("Account Balance: " + account.GetBalance());
+        Spivaty("Account Type: " + account.GetType());
+        Yakscho(account.GetType() == "Savings"){
             Spivaty("Interest rate for the account: ", account.interest_rate*100, "%");
         }
         }
@@ -184,7 +207,7 @@ Klas AdminRahunok : Rahunok {
 
 
 
-Admin := novyy AdminRahunok("Admin", "Password");
+Admin := novyy AdminRahunok("Admin", "e7cf3ef4f17c3999a94f2c6f612e8a888e5b1026878e4e19398b23bd38ec221a"); //Password is "Password"
 
 Oksana := novyy Rahunok("Oksana", 500.50, "Chequing");
 Taras := novyy Rahunok("Taras", 1000, "Chequing");
@@ -205,7 +228,7 @@ Account := Slukhai("Which account would you like to access: ");
 
 Yakscho(mistyt(klyuchi(accounts), Account)){
     current := accounts[Account];
-    Spivaty("Welcome " + current.account + " (" + current.type + ")");
+    Spivaty("Welcome " + current.GetAccount() + " (" + current.GetType() + ")");
     operation := Chyslo(Slukhai("What would you like to do? Deposit(1), Withdraw(2), CheckBalance(3), Transfer(4): "));
     Yakscho(operation == 1){
     current.Deposit();
@@ -294,7 +317,7 @@ Yakscho (Access == Pravda){
             Spivaty("❌ Verification: ", name, " is missing from the dictionary.");
         }
         // Check the object's balance
-        Spivaty(name,"'s Balance:", accounts[name].balance);
+        Spivaty(name,"'s Balance:", accounts[name].GetBalance());
 
         Admin.CheckAccounts(all_accounts);
         
