@@ -376,6 +376,13 @@ class Parser:
                 result = self.assignment_from_target(expr)
                 if result is None:
                     return None
+            elif next_tok and next_tok.type == 'OP' and next_tok.value in ('+=', '-=', '*=', '/=', '%='):
+                op = self.advance()
+                right_expr = self.or_expression()
+                # Convert += to regular assignment
+                binary_op = next_tok.value[0]  # Extract '+' from '+='
+                expanded = KozakBinOp(expr, binary_op, right_expr)
+                result = self.assignment_from_target_with_value(expr, expanded)
             elif next_tok and next_tok.type == 'OP' and next_tok.value in('++', '--'):
                 if not isinstance(expr, KozakVariable):
                     return self.error(tok, f"Increment/decrement only works on simple variables, not on indexed or property access")
@@ -1000,3 +1007,11 @@ class Parser:
         if tok and tok.type == expected_type:
             self.check_dialect(tok)
         return self.expect(expected_type)
+    
+    def assignment_from_target_with_value(self, target, value):
+        if isinstance(target, KozakPropertyAccess):
+            return KozakPropertyAssign(target.instance, target.property_name, value)
+        elif isinstance(target, KozakDictionaryAccess):
+            return KozakPropertyAssign(target.dictionary, target.key, value)
+        elif isinstance(target, KozakVariable):
+            return KozakAssign(target.name, value)
