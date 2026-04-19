@@ -1,0 +1,179 @@
+Hetman
+
+Importuvaty("gra");
+
+Chyslo blockSize := 20;
+Chyslo boardWidth := 500;
+Chyslo boardHeight := 300;
+Chyslo boardX := 200;
+Chyslo boardY := 100;
+
+snakeBody := [[400, 300], [380, 300], [360, 300]];
+Chyslo dirX := 1;
+Chyslo dirY := 0;
+
+food := { "x": 300, "y": 200 };
+
+Logika gameOver := Nepravda;
+Logika shouldQuit := Nepravda;
+Chyslo score := 0;
+Chyslo game_state := 0;  // 0 = playing, 1 = game over
+Chyslo frames_since_death := 0;  // Count frames since game over
+
+Zavdannya spawn_food() {
+    Chyslo gridWidth := Chyslo(boardWidth / blockSize);
+    Chyslo gridHeight := Chyslo(boardHeight / blockSize);
+    
+    Chyslo randomX := randint(0, gridWidth - 1);
+    Chyslo randomY := randint(0, gridHeight - 1);
+    
+    food["x"] := boardX + (randomX * blockSize);
+    food["y"] := boardY + (randomY * blockSize);
+}
+
+Zavdannya reset_game(){
+    // Reset game state first
+    score := 0;
+    gameOver := Nepravda;
+    game_state := 0;
+    frames_since_death := 0;
+    
+    // Clear and rebuild snake at CENTER of board
+    ochystyty(snakeBody);
+    dodaty(snakeBody, [400, 300]);
+    dodaty(snakeBody, [380, 300]);
+    dodaty(snakeBody, [360, 300]);
+    
+    // Reset direction to moving right
+    dirX := 1;
+    dirY := 0;
+    
+    // Spawn new food
+    spawn_food();
+    Running := Pravda;
+    
+    Spivaty("Game reset! Snake at:", snakeBody[0]);
+    Spivaty("Score: ", score);
+}
+
+gra.stvoryty_vikno(800, 600, "Snake - Kozak Game");
+spawn_food();
+
+Spivaty("Starting game...");
+
+// Main game loop
+
+Running := Pravda;
+Doki (gra.onovyty() && shouldQuit == Nepravda && Running == Pravda) {
+    
+    // Only process game logic if in playing state
+    Yakscho (game_state == 0) {
+        // Input handling
+        Yakscho (gra.klavisha_natysnuta("vlivo") && dirX == 0) {
+            dirX := -1; 
+            dirY := 0;
+        }
+        Yakscho (gra.klavisha_natysnuta("vpravo") && dirX == 0) {
+            dirX := 1; 
+            dirY := 0;
+        }
+        Yakscho (gra.klavisha_natysnuta("vverkh") && dirY == 0) {
+            dirX := 0; 
+            dirY := -1;
+        }
+        Yakscho (gra.klavisha_natysnuta("vnyz") && dirY == 0) {
+            dirX := 0; 
+            dirY := 1;
+        }
+        
+        // Calculate new head position
+        Chyslo newHeadX := snakeBody[0][0] + (dirX * blockSize);
+        Chyslo newHeadY := snakeBody[0][1] + (dirY * blockSize);
+        
+        // Check wall collision
+        Yakscho (newHeadX < boardX || newHeadX >= boardX + boardWidth) {
+            gameOver := Pravda;
+            game_state := 1;
+            Spivaty("Wall collision! Game Over");
+        }
+        Yakscho (newHeadY < boardY || newHeadY >= boardY + boardHeight) {
+            gameOver := Pravda;
+            game_state := 1;
+            Spivaty("Wall collision! Game Over");
+        }
+        
+        // Check self-collision
+        Chyslo i := 0;
+        Doki (i < dovzhyna(snakeBody) && game_state == 0) {
+            Yakscho (newHeadX == snakeBody[i][0] && newHeadY == snakeBody[i][1]) {
+                gameOver := Pravda;
+                game_state := 1;
+                Spivaty("Self collision! Game Over");
+            }
+            i++;
+        }
+        
+        // Only move if still alive
+        Yakscho (game_state == 0) {
+            // Add new head to front
+            newHead := [newHeadX, newHeadY];
+            vstavyty(snakeBody, 0, newHead);
+            
+            // Check if food eaten
+            Logika ateFood := Nepravda;
+            Yakscho (newHeadX == food["x"] && newHeadY == food["y"]) {
+                score++;
+                ateFood := Pravda;
+                spawn_food();
+            }
+            
+            // Remove tail (unless we ate food)
+            Yakscho (ateFood == Nepravda) {
+                vydalyty(snakeBody, dovzhyna(snakeBody) - 1);
+            }
+        }
+    }
+    Inakshe {
+        // Count frames since death
+        frames_since_death++;
+    }
+    
+    // Drawing (always happens, regardless of game state)
+    gra.zalyty(gra.CHORNYY);
+    gra.namalyuvaty_pryamokutnyk(gra.SYNIY, boardX, boardY, boardWidth, boardHeight);
+    
+    // Draw food
+    gra.namalyuvaty_pryamokutnyk(gra.CHERVONYY, food["x"], food["y"], blockSize, blockSize);
+    
+    // Draw snake
+    Dlya segment kozhen snakeBody {
+        gra.namalyuvaty_pryamokutnyk(gra.ZELENYY, segment[0], segment[1], blockSize, blockSize);
+    }
+    
+    // Draw UI
+    gra.napysaty_tekst("Use arrows to move!", 10, 10, gra.BILYY, 32);
+    gra.napysaty_tekst("Score: " + score, 10, 45, gra.BILYY, 28);
+    
+    // Game Over overlay - only show after a few frames
+    Yakscho (game_state == 1) {
+        gra.namalyuvaty_pryamokutnyk(gra.SIRYY, 250, 200, 300, 200);
+        gra.napysaty_tekst("GAME OVER!", 280, 230, gra.CHERVONYY, 48);
+        gra.napysaty_tekst("Final Score: " + score, 290, 290, gra.BILYY, 32);
+        gra.napysaty_tekst("Press R to Restart", 270, 330, gra.BILYY, 24);
+        gra.napysaty_tekst("Press ESC to quit", 280, 360, gra.BILYY, 24);
+        
+        Yakscho (gra.klavisha_natysnuta("escape")) {
+            shouldQuit := Pravda;
+        }
+
+        Yakscho (gra.klavisha_natysnuta("r")) {
+            reset_game();
+            game_state := 0;
+        }
+    }
+    
+    gra.vstanovyty_fps(10);
+}
+
+gra.zakryty();
+Spivaty("Game closed. Final score:", score);
