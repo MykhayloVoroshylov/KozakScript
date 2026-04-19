@@ -3,6 +3,7 @@ class ClassDef:
     def __init__(self, name, methods, constructor=None, destructor=None, parent_class=None, field_access=None, method_access=None, friends=None, friend_classes=None, ):
         self.name = name
         self.methods = methods  # dict: method_name -> method_node
+        self.static_methods = {}  # dict: static_method_name -> method_node
         self.constructor = constructor  # Node for Tvir (constructor) if exists
         self.destructor = destructor  # Node for destructor if exists
         self.parent_class = parent_class  # ClassDef of parent class if inheritance is used
@@ -10,6 +11,11 @@ class ClassDef:
         self.method_access = method_access or {} # dict: method_name -> access_level
         self.friends = friends or [] # list of friend function names
         self.friend_classes = friend_classes or [] # list of friend class names
+
+
+        for method_name, method_def in list(methods.items()):
+            if hasattr(method_def, 'is_static') and method_def.is_static:
+                self.static_methods[method_name] = method_def
 
     def find_method(self, name):
         """Recursively search for a method in the class or its ancestors."""

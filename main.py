@@ -1,5 +1,6 @@
 """Main.py file for the KozakScript programming language."""
-
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning, module='pygame')
 import sys
 import os
 import re
@@ -10,12 +11,14 @@ from core.lexer import lex
 from core.parser import Parser
 from core.interpreter import Interpreter
 from core.interpreter import RuntimeErrorKozak, ProgramExit
+from core.dialect_messages import DialectMessages
+from core.interpreter import DialectChecker
+
 
 
 def extract_embedded_script():
     """Extract script from bundled executable"""
     if not getattr(sys, 'frozen', False):
-        # Not running as a frozen executable, skip
         return None
     
     try:
@@ -25,30 +28,20 @@ def extract_embedded_script():
         marker_start = b"---KOZAK_PAYLOAD_START---"
         marker_end = b"---KOZAK_PAYLOAD_END---"
         
-        # Check if this is a bundled executable
         if marker_start not in content:
             return None
         
-        # Find script boundaries
         script_start = content.index(marker_start) + len(marker_start)
         
         if marker_end in content[script_start:]:
             script_end = content.index(marker_end, script_start)
         else:
-            # If no end marker found, something is wrong
             print("Warning: Could not find script end marker")
             return None
         
-        # Extract and decode script
         script_data = content[script_start:script_end]
-        
-        # Remove any leading/trailing whitespace and newlines
         script_data = script_data.strip()
-        
-        # Decode to UTF-8 string
         decoded = script_data.decode('utf-8', errors='replace')
-        
-        # Normalize line endings
         decoded = decoded.replace('\r\n', '\n').replace('\r', '\n')
         
         return decoded
@@ -70,22 +63,19 @@ def extract_bundled_data():
             manifest_end = b"---DATA_MANIFEST_END---"
             
             if manifest_start not in content:
-                return None  # No bundled data
+                return None
             
-            # Extract manifest
             start_idx = content.index(manifest_start) + len(manifest_start)
             end_idx = content.index(manifest_end)
             manifest_json = content[start_idx:end_idx].strip().decode('utf-8')
             manifest = json.loads(manifest_json)
             
-            # Extract data files
             data_files = []
             file_marker_start = b"---DATA_FILE_START---"
             file_marker_end = b"---DATA_FILE_END---"
             
             search_pos = 0
             for file_info in manifest:
-                # Find next data file
                 start = content.index(file_marker_start, search_pos) + len(file_marker_start)
                 end = content.index(file_marker_end, start)
                 
@@ -109,17 +99,13 @@ def setup_bundled_data():
     if not data_files:
         return None
     
-    # Create a temporary directory for extracted files
     temp_dir = tempfile.mkdtemp(prefix="kozak_data_")
     print(f"Extracting bundled data to: {temp_dir}")
     
     for file_info in data_files:
         dest_path = os.path.join(temp_dir, file_info['destination'])
-        
-        # Create subdirectories if needed
         os.makedirs(os.path.dirname(dest_path), exist_ok=True)
         
-        # Write the file
         with open(dest_path, 'wb') as f:
             f.write(file_info['content'])
         
@@ -145,110 +131,159 @@ def print_with_hint(err: str):
             break
 
 
-
 def run_code(code, strict_dialect=False, data_dir=None):
     """Execute KozakScript code"""
+    
     exit_code = 0
     
-    # Change to data directory if provided
     original_dir = os.getcwd()
     if data_dir:
         os.chdir(data_dir)
     
-    import traceback
     try:
         tokens = list(lex(code))
-        parser = Parser(tokens, strict_dialect=strict_dialect)
-        ast = parser.parse()
+        kozak_parser = Parser(tokens, strict_dialect=strict_dialect)  
+        ast = kozak_parser.parse()
         
-
-        if parser.errors:
-            print("Bida, kozache! Errors found:")
-            for e in parser.errors:
+        # ✅ Check for parser errors first
+        if kozak_parser.errors:
+            error_header = DialectMessages.get_message(
+                'ERROR_HEADERS', 
+                kozak_parser.detected_dialect or 'english'
+            )
+            print(error_header)
+            
+            for e in kozak_parser.errors:
                 err = str(e)
                 print_with_hint(err)
 
-            if strict_dialect and parser.dialect_violations:
-                print(f"\n🚫 Dialect Enforcement: Found {len(parser.dialect_violations)} violation(s)")
-                print(f"   Detected dialect: {parser.detected_dialect}")
-                print("   Govory odnieyu movoyu, kozache! Nichogo ne rozumiyu!")
+            if strict_dialect and kozak_parser.dialect_violations:
+                print(f"\n🚫 Dialect Enforcement: Found {len(kozak_parser.dialect_violations)} violation(s)")
+                print(f"   Detected dialect: {kozak_parser.detected_dialect}")
+                
+                if kozak_parser.detected_dialect == 'ukrainian_latin':
+                    print("   Govory odnieyu movoyu, kozache! Nichogo ne rozumiyu!")
+                elif kozak_parser.detected_dialect == 'ukrainian_cyrillic':
+                    print("   Говори однією мовою, козаче! Нічого не розумію!")
+                elif kozak_parser.detected_dialect == 'russian_latin':
+                    print("   Govori na odnom yazyke, tovarisch! Nichego ne ponimayu!")
+                elif kozak_parser.detected_dialect == 'russian_cyrillic':
+                    print("   Говори на одном языке, товарищ! Ничего не понимаю")
+                elif kozak_parser.detected_dialect == 'symbolic':
+                    print("   PROTOCOL_VIOLATION: Mixed dialect tokens detected")
+                else:
+                    print("   Speak one language, pal! I don't understand!")
+                
                 print("   Tip: Use one dialect consistently throughout your program.")
 
-            return 1
-        else:
-            if strict_dialect and parser.detected_dialect:
-                print(f"✓ Dialect check passed: Using {parser.detected_dialect} dialect")
-
-            interpreter = Interpreter(
-                strict_dialect=strict_dialect,
-                parent_dialect=parser.detected_dialect
+            return 1, None  # ✅ Return dialect info
+        
+        # No errors, continue
+        if strict_dialect and kozak_parser.detected_dialect:
+            startup_msg = DialectMessages.get_message(
+                'STARTUP_MESSAGES',
+                kozak_parser.detected_dialect
             )
-            
-            # Set current directory for imports
-            interpreter.current_file_dir = data_dir if data_dir else os.getcwd()
-            
-            try:
-                interpreter.eval(ast)
-                exit_code = interpreter.exit_code
-                print(f"\nProgram executed successfully, kozache!")
-                print(f"Program exited with code {exit_code}")
-            except ProgramExit as e:
-                exit_code = e.code
-                print(f"\nProgram exited with code {exit_code}, kozache!")
+            print(startup_msg)
 
-    # except Exception as e:
-    #     print("FULL TRACEBACK:")
-    #     traceback.print_exc()
-    #     raise
+        interpreter = Interpreter(
+            strict_dialect=strict_dialect,
+            parent_dialect=kozak_parser.detected_dialect
+        )
+        
+        interpreter.current_file_dir = data_dir if data_dir else os.getcwd()
+        
+        if kozak_parser.detected_dialect:
+            checker = DialectChecker(kozak_parser.detected_dialect)
+            checker.check(ast)
+            if checker.errors:
+                error_header = DialectMessages.get_message(
+                    'ERROR_HEADERS',
+                    kozak_parser.detected_dialect
+                )
+                print(error_header)
+                for err in checker.errors:
+                    print_with_hint(err)
+                return 1, kozak_parser.detected_dialect
+        try:
+            interpreter.eval(ast)
+            exit_code = interpreter.exit_code
+            
+            success_msg = DialectMessages.get_message(
+                'SUCCESS_MESSAGES',
+                kozak_parser.detected_dialect or 'english'
+            )
+            print(f"\n{success_msg}")
+            
+            exit_msg = DialectMessages.get_message(
+                'EXIT_MESSAGES',
+                kozak_parser.detected_dialect or 'english',
+                code=exit_code
+            )
+            print(exit_msg)
+
+        except ProgramExit as e:
+            exit_code = e.code
+            exit_msg = DialectMessages.get_message(
+                'EXIT_MESSAGES',
+                kozak_parser.detected_dialect or 'english',
+                code=exit_code
+            )
+            print(f"\n{exit_msg}")
             
     except RuntimeErrorKozak as e:
-        print("Bida, kozache! Runtime error:")
+        error_header = DialectMessages.get_message(
+            'ERROR_HEADERS',
+            getattr(kozak_parser, 'detected_dialect', None) or 'english'
+        )
+        print(error_header)
         print_with_hint(str(e))
         exit_code = 1
     except Exception as e:
-        print("Neperedbachena bida! An unexpected error occurred:")
+        if detected_dialect == 'ukrainian_latin':
+            print("Neperedbachena bida, kozache! An unexpected error occurred:")
+        elif detected_dialect == 'russian_latin':
+            print("Neozhydanaya beda, tovarisch! An unexpected error occurred:")
+        elif detected_dialect == 'english':
+            print("Unexpected error pal! An unexpected error occured:")
+        elif detected_dialect == 'ukrainian_cyrillic':
+            print("Непередбачена біда, козаче! Сталася несподівана помилка:")
+        elif detected_dialect == 'russian_cyrillic':
+            print("Неожиданная беда, товарищ! Случилась неожиданная ошибка:")
+        elif detected_dialect == 'symbolic':
+            print("PROGRAM TERMINATED WITH UNEXPECTED BEHAVIOR:")
         print_with_hint(str(e))
         exit_code = 1
     finally:
-        # Restore original directory
         if data_dir:
             os.chdir(original_dir)
     
-    return exit_code
+    # ✅ Return both exit code and detected dialect
+    detected = getattr(kozak_parser, 'detected_dialect', None) if 'kozak_parser' in locals() else None
+    return exit_code, detected
 
 
 if __name__ == '__main__':
     sys.stdout.reconfigure(encoding='utf-8')
 
-    # Check if this is a bundled executable with embedded script
     embedded_script = extract_embedded_script()
 
     if embedded_script:
-        
-        # Extract bundled data files
         data_dir = setup_bundled_data()
         if data_dir:
             print()
         
-        exit_code = run_code(embedded_script, strict_dialect=False, data_dir=data_dir)
-        input("\nPress Enter to exit, kozache...")
+        exit_code, detected_dialect = run_code(embedded_script, strict_dialect=False, data_dir=data_dir)
+        
+        press_enter_msg = DialectMessages.get_message(
+            'PRESS_ENTER_MESSAGES',
+            detected_dialect
+        )
+        input(press_enter_msg)
         sys.exit(exit_code)
-    # else:
-    #     print("DEBUG: No embedded script found, running in normal mode")
-    # if embedded_script:
-    #     print("Running bundled KozakScript program...\n")
-        
-    #     # Extract bundled data files
-    #     data_dir = setup_bundled_data()
-    #     if data_dir:
-    #         print()
-        
-    #     exit_code = run_code(embedded_script, strict_dialect=False, data_dir=data_dir)
-    #     input("\nPress Enter to exit, kozache...")
-    #     sys.exit(exit_code)
-
-    # Normal mode: parse command line arguments
-    parser = argparse.ArgumentParser(
+    
+    # ✅ Normal mode - renamed to arg_parser
+    arg_parser = argparse.ArgumentParser(
         description='KozakScript Interpreter - A multi-dialect programming language',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog='''
@@ -258,36 +293,67 @@ Examples:
   python main.py program.kozak -s               # Short form
         '''
     )
-    parser.add_argument('file', help='KozakScript file to execute (.kozak extension)')
-    parser.add_argument('--skip-strict', '-s', action='store_true',
+    arg_parser.add_argument('file', help='KozakScript file to execute (.kozak extension)')
+    arg_parser.add_argument('--skip-strict', '-s', action='store_true',
                        help='Skip strict dialect mode (allow mixing dialects)')
     
-    args = parser.parse_args()
-
+    args = arg_parser.parse_args()
     exit_code = 0
+    detected_dialect = None
     
     try:
         file_path = args.file
 
         if not file_path.endswith('.kozak'):
-            raise ValueError("Oy bida, Kozache! The file must have a '.kozak' extension.")
+            if detected_dialect == 'ukrainian_latin':
+                raise ValueError("Oy bida, Kozache! The file must have a '.kozak' extension.")
+            elif detected_dialect == 'ukrainian_cyrillic':
+                raise ValueError("Ой біда, козаче! Файл повинен мати розширення '.kozak'")
+            elif detected_dialect == 'russian_latin':
+                raise ValueError("Oy beda, tovarisch! The file must have a '.kozak' extension.")
+            elif detected_dialect == 'russian_cyrillic':
+                raise ValueError("Ой беда, товарищ! Файл должен иметь расширение '.kozak'")
+            elif detected_dialect == 'symbolic':
+                raise ValueError("ERROR: Invalid file extension. Expected '.kozak'")
+            else:
+                raise ValueError("Oh no, pal! The file must have a '.kozak' extension.")
+            
 
         if not os.path.exists(file_path):
-            raise FileNotFoundError(f"File '{file_path}' not found")
+            if detected_dialect == 'ukrainian_latin':
+                raise FileNotFoundError(f"Have I gone blind, or your file is gone, Kozache? \n'{file_path}' not found")
+            elif detected_dialect == 'ukrainian_cyrillic':
+                raise FileNotFoundError(f"Осліп я, чи твій файл зник, козаче? \n'{file_path}' не знайдено")
+            elif detected_dialect == 'russian_latin':
+                raise FileNotFoundError(f"Where has your file gone, tovarisch? \n'{file_path}' not found")
+            elif detected_dialect == 'russian_cyrillic':
+                raise FileNotFoundError(f"Куда твой файл подевался, товарищ? \n'{file_path}' не найден")
+            elif detected_dialect == 'symbolic':
+                raise FileNotFoundError(f"ERROR: File '{file_path}' not found")
+            else:
+                raise FileNotFoundError(f"File '{file_path}' not found, pal")            
 
         with open(file_path, 'r', encoding="utf-8") as f:
             code = f.read()
 
-        # Run the code
-        exit_code = run_code(code, strict_dialect=not args.skip_strict)
+        exit_code, detected_dialect = run_code(code, strict_dialect=not args.skip_strict)
             
     except FileNotFoundError as e:
-        print(f"Oslip ya, chy tviy file znyk, Kozache? {e}")
         exit_code = 1
     except Exception as e:
-        print("Neperedbachena bida! An unexpected error occurred:")
+        if detected_dialect:
+            error_header = DialectMessages.get_message(
+                'ERROR_HEADERS',
+                detected_dialect
+            )
+            print(error_header)
         print_with_hint(str(e))
         exit_code = 1
 
-    input("\nPress Enter to exit, kozache...")
+    # ✅ Use detected dialect for Press Enter message
+    press_enter_msg = DialectMessages.get_message(
+        'PRESS_ENTER_MESSAGES',
+        detected_dialect 
+    )
+    input(press_enter_msg)
     sys.exit(exit_code)

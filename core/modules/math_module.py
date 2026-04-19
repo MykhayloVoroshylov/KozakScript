@@ -3,7 +3,7 @@ import math
 
 class MathModule:
     """Provides mathematical functions and constants"""
-    
+        
     # Constants
     @property
     def pi(self):

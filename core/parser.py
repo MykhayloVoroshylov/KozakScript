@@ -1,5 +1,6 @@
 """Parser for KozakScript"""
 
+import token
 import traceback
 
 from core.ast import (
@@ -35,119 +36,51 @@ from core.ast import (
     KozakExit,
     KozakImport,
     KozakSuper,
-    KozakDestructor
+    KozakDestructor,
+    KozakStaticMethodCall,
 )
 
 from core.lexer import Token
+from core.lexer import DIALECT_KEYWORDS
+from core.lexer import KEYWORD_TRANSLATIONS
+from core.lexer import SHARED_SLAVIC
+from core.lexer import DIALECT_STARTERS
+from core.lexer import SHARED_SLAVIC_CYRILLIC
 
 class Parser:
-    DIALECT_STARTERS = {
-        'Hetman': 'ukrainian',
-        'Chief': 'english',
-        'Ataman': 'russian',
-        '>>>': 'symbolic'
-    }
-
-    SHARED_SLAVIC = {
-        'Dlya',
-        'Pravda',
-        'Nepravda',
-        'Logika',
-        'klyuchi',
-        'novyy'
-    }
-
-    DIALECT_KEYWORDS = {
-        'ukrainian': {
-            'Hetman', 'Spivaty', 'Slukhai', 'Povernuty', 'Zavdannya', 'Doki',
-            'Chyslo', 'DroboveChyslo', 'Ryadok', 
-            'Yakscho', 'Abo_Yakscho', 'Inakshe', 'dovzhyna', 'kozhen', 'Klas', 'Tvir',
-            'tsey', 'Sprobuy', 'Piymat', 'Vkintsi', 'Kydaty', 'Vykhid', 'Importuvaty',
-            'znachennya', 'maye_klyuch', 'vydalyty_klyuch',
-            'dodaty', 'vstavyty', 'vydalyty', 'vyinyaty', 'ochystyty', 'vyrizaty',
-            'mistyt', 'index_z', 'Zapysaty', 'Chytaty', 'stvoryty_matrytsyu', 'rozmir_matrytsi', 'splushchyty', 'transportuvaty',
-            'otrymaty_ryadok', 'otrymaty_stovpets', 'vstanovyty_na', 'Vidkrytyy', 'Zakrytyy', 'Zakhyshchenyy', 'Batko', 'Druh',
-            'Znyshchyty'
-        },
-        'english': {
-            'Chief', 'Print', 'Input', 'Return', 'Function', 'For', 'While',
-            'True', 'False', 'Int', 'Float', 'Str', 'Bool',
-            'If', 'Else_If', 'Else', 'Length', 'each', 'Class', 'Constructor',
-            'new', 'this', 'Try', 'Catch', 'Finally', 'Throw', 'Exit', 'Import',
-            'keys', 'values', 'has_key', 'remove_key',
-            'append', 'insert', 'remove', 'pop', 'clear', 'slice',
-            'contains', 'index_of', 'Write', 'Read', 'create_matrix', 'matrix_size', 'flatten', 'transpose',
-            'get_row', 'get_col', 'set_at', 'Public', 'Private', 'Protected', 'Super', 'Friend', 'Destroy'
-        },
-        'russian': {
-            'Ataman', 'Pechatat', 'Vvod', 'Vernut', 'Zadanie', 'Poka',
-            'Chislo', 'DrobnoyeChislo', 'Stroka', 
-            'Yesli', 'Ili_Yesli', 'Inache', 'dlinna', 'kazhdy', 'Klass', 'Tvorenye',
-            'etot', 'Poprobuy', 'Poymat', 'Nakonets', 'Brosat', 'Vykhod', 'Importirovat',
-            'znachennie', 'imeet_klyuch', 'udalit_klyuch',
-            'dobavit', 'vstavit', 'udalit', 'vytaschit', 'ochistit', 'vyrezat',
-            'soderzhit', 'index_znachenia', 'Zapisat', 'Chitat','sozdat_matritsu', 'razmer_matritsy', 'spluschit', 'transportirovat',
-            'poluchit_stroku', 'poluchit_stolbets', 'ustanovit_na', 'Otkrytyy', 'Zakrytyy', 'Zashchishchennyy', 'Roditel', 'Drug',
-            'Unichtozhit'
-        },
-        'symbolic': {
-            '>>>', '!', '?', '<!', '$', '~~', '~`',
-            '1!', '0!', 'i`**', 'f`**', 's`**', 'b`**',
-            '??', '?!', '!!', '___', '::', '@', '@=',
-            '+@', '->', '<<', '>>', '<>', '!!>', '<<<', '#',
-            r'k{}', r'v{}', '?k', '-k',
-            '+<', '+:', '-<', '-<!', '--<', '[..]',
-            '?^', '?:', '=>', '=<', '@[]', '#[]', '[]>', '[]^', '[]->', '[]|', '[]:=', '++>', '-->', '##>', '^>', '<->', '@~'
-        }
-    }
-
-    KEYWORD_TRANSLATIONS = {
-        # Structure keywords
-        'Hetman': {'ukrainian': 'Hetman', 'english': 'Chief', 'russian': 'Ataman', 'symbolic': '>>>'},
-        'Spivaty': {'ukrainian': 'Spivaty', 'english': 'Print', 'russian': 'Pechatat', 'symbolic': '!'},
-        'Slukhai': {'ukrainian': 'Slukhai', 'english': 'Input', 'russian': 'Vvod', 'symbolic': '?'},
-        'Povernuty': {'ukrainian': 'Povernuty', 'english': 'Return', 'russian': 'Vernut', 'symbolic': '<!'},
-        'Zavdannya': {'ukrainian': 'Zavdannya', 'english': 'Function', 'russian': 'Zadanie', 'symbolic': '$'},
-        'Doki': {'ukrainian': 'Doki', 'english': 'While', 'russian': 'Poka', 'symbolic': '~`'},
+    KEYWORD_TRANSLATIONS = KEYWORD_TRANSLATIONS
+    DIALECT_KEYWORDS = DIALECT_KEYWORDS
+    SHARED_SLAVIC = SHARED_SLAVIC
+    DIALECT_STARTERS = DIALECT_STARTERS
+    SHARED_SLAVIC_CYRILLIC = SHARED_SLAVIC_CYRILLIC
+    
+    def get_user_friendly_keyword(self, internal_keyword):
+        """Convert internal keyword to user's dialect"""
+        if not self.detected_dialect:
+            return internal_keyword
         
-        # Types
-        'Chyslo': {'ukrainian': 'Chyslo', 'english': 'Int', 'russian': 'Chislo', 'symbolic': 'i`**'},
-        'DroboveChyslo': {'ukrainian': 'DroboveChyslo', 'english': 'Float', 'russian': 'DrobnoyeChislo', 'symbolic': 'f`**'},
-        'Ryadok': {'ukrainian': 'Ryadok', 'english': 'Str', 'russian': 'Stroka', 'symbolic': 's`**'},
-        'Logika': {'ukrainian': 'Logika', 'english': 'Bool', 'russian': 'Logika', 'symbolic': 'b`**'},
+        # Find the translation for the detected dialect
+        for key, translations in KEYWORD_TRANSLATIONS.items():
+            if key == internal_keyword:
+                return translations.get(self.detected_dialect, internal_keyword)
         
-        # Control flow
-        'Yakscho': {'ukrainian': 'Yakscho', 'english': 'If', 'russian': 'Yesli', 'symbolic': '??'},
-        'AboYakscho': {'ukrainian': 'Abo_Yakscho', 'english': 'Else_If', 'russian': 'Ili_Yesli', 'symbolic': '?!'},
-        'Inakshe': {'ukrainian': 'Inakshe', 'english': 'Else', 'russian': 'Inache', 'symbolic': '!!'},
-        
-        # OOP
-        'Klas': {'ukrainian': 'Klas', 'english': 'Class', 'russian': 'Klass', 'symbolic': '@'},
-        'Tvir': {'ukrainian': 'Tvir', 'english': 'Constructor', 'russian': 'Tvorenye', 'symbolic': '@='},
-        'NEW': {'ukrainian': 'novyy', 'english': 'new', 'russian': 'novyy', 'symbolic': '+@'},
-        'THIS': {'ukrainian': 'tsey', 'english': 'this', 'russian': 'etot', 'symbolic': '->'},
-        'SUPER': {'ukrainian': 'Batko', 'english': 'Super', 'russian': 'Roditel', 'symbolic': '^>'},
-        'Destructor': {'ukrainian': 'Znyshchyty', 'english': 'Destructor', 'russian': 'Unichtozhit', 'symbolic': '@~'},
+        return internal_keyword
 
-        # Access modifiers
-        'PUBLIC': {'ukrainian': 'Vidkrytyy', 'english': 'Public', 'russian': 'Otkrytyy', 'symbolic': '++>'},
-        'PRIVATE': {'ukrainian': 'Zakrytyy', 'english': 'Private', 'russian': 'Zakrytyy', 'symbolic': '-->'},
-        'PROTECTED': {'ukrainian': 'Zakhyshchenyy', 'english': 'Protected', 'russian': 'Zashchishchennyy', 'symbolic': '##>'},
-        'FRIEND': {'ukrainian': 'Druh', 'english': 'Friend', 'russian': 'Drug', 'symbolic': '<->'},
-        
-        # Exception handling
-        'Sprobuy': {'ukrainian': 'Sprobuy', 'english': 'Try', 'russian': 'Poprobuy', 'symbolic': '<<'},
-        'Piymat': {'ukrainian': 'Piymat', 'english': 'Catch', 'russian': 'Poymat', 'symbolic': '>>'},
-        'Vkintsi': {'ukrainian': 'Vkintsi', 'english': 'Finally', 'russian': 'Nakonets', 'symbolic': '<>'},
-        'Kydaty': {'ukrainian': 'Kydaty', 'english': 'Throw', 'russian': 'Brosat', 'symbolic': '!!>'},
-        
-        # Other
-        'Vykhid': {'ukrainian': 'Vykhid', 'english': 'Exit', 'russian': 'Vykhod', 'symbolic': '<<<'},
-        'Importuvaty': {'ukrainian': 'Importuvaty', 'english': 'Import', 'russian': 'Importirovat', 'symbolic': '#'},
-        'KOZHEN': {'ukrainian': 'kozhen', 'english': 'each', 'russian': 'kazhdy', 'symbolic': '::'},
-        'Dovzhyna': {'ukrainian': 'dovzhyna', 'english': 'length', 'russian': 'dlinna', 'symbolic': '___'},
-    }
-
+    def error(self, token, message):
+        """Enhanced error with dialect-aware keywords"""
+        if token:
+            # Translate internal keywords in the message
+            friendly_message = message
+            for internal_key in KEYWORD_TRANSLATIONS.keys():
+                if internal_key in message:
+                    user_key = self.get_user_friendly_keyword(internal_key)
+                    friendly_message = friendly_message.replace(internal_key, user_key)
+            
+            self.errors.append(f"Error at line {token.line}, col {token.column}: {friendly_message}")
+        else:
+            self.errors.append(f"Error at unknown location: {message}")
+        self.synchronize()
+        return None
 
     def __init__(self, tokens, strict_dialect=False):
         self.tokens = tokens
@@ -175,16 +108,53 @@ class Parser:
     
     def check_dialect(self, token):
         """Check and enforce dialect consistency with helpful hints"""
+        if token is None:
+            return
+
+        
         if not self.strict_dialect:
             return
-        
-        if token.value in self.SHARED_SLAVIC:
-            if self.detected_dialect is None:
-                return
-            
-            if self.detected_dialect in ('ukrainian', 'russian'):
-                return
+
+        # IMPORTANT: If dialect hasn't been set yet, it should have been set by the starter keyword
+        # So we shouldn't be detecting dialect from regular keywords
+        if self.detected_dialect is None:
+            # This shouldn't happen if starter keyword was processed correctly
+            # But as a fallback, check if this token is a dialect starter
+            if token.value in self.DIALECT_STARTERS:
+                self.detected_dialect = self.DIALECT_STARTERS[token.value]
+            return
+
+        # ========== HANDLE SHARED SLAVIC CYRILLIC KEYWORDS ==========
+        # These are keywords that are IDENTICAL in both Ukrainian and Russian Cyrillic
+        # Examples: Число, Правда, Неправда, Для, Друг
+        if token.value in self.SHARED_SLAVIC_CYRILLIC:
+            # If we're in a Cyrillic dialect, allow these shared keywords
+            if self.detected_dialect in ('ukrainian_cyrillic', 'russian_cyrillic'):
+                return  # ✅ Allow shared Cyrillic keywords in Cyrillic dialects
             else:
+                # If we're in a non-Cyrillic dialect, this is mixing
+                correct_keyword = self.get_keyword_translation(token.value, self.detected_dialect)
+                hint = ""
+                if correct_keyword:
+                    hint = f"\n     Hint: Replace '{token.value}' with '{correct_keyword}'"
+                
+                violation = (
+                    f"  ⚠ Line {token.line}, col {token.column}: "
+                    f"Using Cyrillic keyword '{token.value}' in {self.detected_dialect} program{hint}"
+                )
+                self.dialect_violations.append(violation)
+                self.errors.append(violation)
+                return
+
+        # ========== HANDLE SHARED SLAVIC LATIN KEYWORDS ==========
+        # These are keywords shared between Ukrainian and Russian Latin scripts
+        # Examples: Dlya, Pravda, Nepravda, Logika, novyy
+        if token.value in self.SHARED_SLAVIC:
+            # If we're in a Latin Slavic dialect, allow these shared keywords
+            if self.detected_dialect in ('ukrainian_latin', 'russian_latin'):
+                return  # ✅ Allow shared Latin Slavic keywords
+            else:
+                # If we're in a non-Slavic dialect, this is mixing
                 correct_keyword = self.get_keyword_translation(token.value, self.detected_dialect)
                 hint = ""
                 if correct_keyword:
@@ -198,21 +168,41 @@ class Parser:
                 self.errors.append(violation)
                 return
         
-        # Determine which dialect this token belongs to
-        token_dialect = None
+        # ========== HANDLE DIALECT-SPECIFIC KEYWORDS ==========
+        # Determine which dialect(s) this token belongs to
+        token_dialects = []
         for dialect, keywords in self.DIALECT_KEYWORDS.items():
             if token.value in keywords:
-                token_dialect = dialect
-                break
+                token_dialects.append(dialect)
         
-        # Skip tokens that aren't dialect-specific
-        if token_dialect is None:
+        # Skip tokens that aren't dialect-specific (like operators, identifiers, etc.)
+        if not token_dialects:
             return
         
-        # First dialect-specific token sets the dialect
-        if self.detected_dialect is None:
-            self.detected_dialect = token_dialect
-            return
+        # If token belongs to multiple dialects, check if current dialect is one of them
+        if len(token_dialects) > 1:
+            # Token exists in multiple dialects
+            if self.detected_dialect in token_dialects:
+                return  # ✅ Token is valid in current dialect
+            else:
+                # Token doesn't belong to current dialect - this is mixing
+                token_dialect = token_dialects[0]  # Pick first one for error message
+                correct_keyword = self.get_keyword_translation(token.value, self.detected_dialect)
+                hint = ""
+                if correct_keyword:
+                    hint = f"\n     Hint: Replace '{token.value}' with '{correct_keyword}'"
+                
+                violation = (
+                    f"  ⚠ Line {token.line}, col {token.column}: "
+                    f"Mixed dialects: '{token.value}' is from {token_dialect}, "
+                    f"but this program uses {self.detected_dialect}{hint}"
+                )
+                self.dialect_violations.append(violation)
+                self.errors.append(violation)
+                return
+        
+        # Token belongs to exactly one dialect
+        token_dialect = token_dialects[0]
         
         # Check for dialect mixing
         if self.detected_dialect != token_dialect:
@@ -223,7 +213,8 @@ class Parser:
             
             violation = (
                 f"  ⚠ Line {token.line}, col {token.column}: "
-                f"Using {token_dialect} keyword '{token.value}' in {self.detected_dialect} program{hint}"
+                f"Mixed dialects: '{token.value}' is from {token_dialect}, "
+                f"but this program uses {self.detected_dialect}{hint}"
             )
             self.dialect_violations.append(violation)
             self.errors.append(violation)
@@ -257,12 +248,15 @@ class Parser:
         if token and token.type == expected_type:
             self.advance()
             return token
+        user_friendly_type = self.get_user_friendly_keyword(expected_type)
+
         stack = traceback.extract_stack()
         caller_info = stack[-2]
         
         if token:
+            user_friendly_actual = self.get_user_friendly_keyword(token.type)
             error_msg = (
-            f"Expected {expected_type}, got {token.type} ('{token.value}') "
+            f"Expected {user_friendly_type}, got {user_friendly_actual} ('{token.value}') "
             f"at line {token.line}, column {token.column}\n"
             f"  Called from: {caller_info.filename}:{caller_info.lineno} "
             f"in {caller_info.name}()"
@@ -270,7 +264,7 @@ class Parser:
             return self.error(token, error_msg)
         else:
             error_msg = (
-            f"Expected {expected_type}, but found end of file.\n"
+            f"Expected {user_friendly_type}, but found end of file.\n"
             f"  Called from: {caller_info.filename}:{caller_info.lineno} "
             f"in {caller_info.name}()"
             )
@@ -376,13 +370,6 @@ class Parser:
                 result = self.assignment_from_target(expr)
                 if result is None:
                     return None
-            elif next_tok and next_tok.type == 'OP' and next_tok.value in ('+=', '-=', '*=', '/=', '%='):
-                op = self.advance()
-                right_expr = self.or_expression()
-                # Convert += to regular assignment
-                binary_op = next_tok.value[0]  # Extract '+' from '+='
-                expanded = KozakBinOp(expr, binary_op, right_expr)
-                result = self.assignment_from_target_with_value(expr, expanded)
             elif next_tok and next_tok.type == 'OP' and next_tok.value in('++', '--'):
                 if not isinstance(expr, KozakVariable):
                     return self.error(tok, f"Increment/decrement only works on simple variables, not on indexed or property access")
@@ -720,7 +707,7 @@ class Parser:
             while self.peek() and self.peek().type == 'COMMA':
                 self.advance()
                 if self.peek() and self.peek().type == 'RPAREN':
-                    return self.error(self.peek(), f"Function arguments cannot have a trailing comma, kozache. (line {self.peek().line}, column {self.peek().column})")
+                    return self.error(self.peek(), f"Function arguments cannot have a trailing comma, {self._term}. (line {self.peek().line}, column {self.peek().column})")
                 arguments.append(self.or_expression())
         
         self.expect('RPAREN')
@@ -796,6 +783,12 @@ class Parser:
 
         while self.peek() and self.peek().type != 'RBRACE':
             access_modifier = 'public'
+            is_static = False
+            if self.peek().type == 'STATIC':
+                self.check_dialect(self.peek())
+                is_static = True
+                self.advance()
+            
             if self.peek().type in ('PUBLIC', 'PRIVATE', 'PROTECTED'):
                 self.check_dialect(self.peek())
                 access_modifier = self.peek().type.lower()
@@ -859,7 +852,7 @@ class Parser:
                 destructor = KozakDestructor(body)
 
             elif self.peek().type == 'Zavdannya':
-                method = self.function_def_with_access(access_modifier)
+                method = self.function_def_with_access(access_modifier, is_static)
                 methods[method.name] = method
                 method_access[method.name] = access_modifier
             
@@ -888,7 +881,7 @@ class Parser:
         friend_classes=friend_classes
         )
     
-    def function_def_with_access(self, access_modifier='public'):
+    def function_def_with_access(self, access_modifier='public', is_static=False):
         """Parse function definition with access modifier already consumed"""
         self.expect('Zavdannya')
         name = self.expect('ID').value
@@ -902,7 +895,7 @@ class Parser:
         self.expect('RPAREN')
         self.expect('LBRACE')
         body = self.block()
-        return KozakFunctionDef(name, parameters, body, access_modifier=access_modifier)
+        return KozakFunctionDef(name, parameters, body, access_modifier=access_modifier, is_static=is_static)
 
 
     
@@ -1007,11 +1000,3 @@ class Parser:
         if tok and tok.type == expected_type:
             self.check_dialect(tok)
         return self.expect(expected_type)
-    
-    def assignment_from_target_with_value(self, target, value):
-        if isinstance(target, KozakPropertyAccess):
-            return KozakPropertyAssign(target.instance, target.property_name, value)
-        elif isinstance(target, KozakDictionaryAccess):
-            return KozakPropertyAssign(target.dictionary, target.key, value)
-        elif isinstance(target, KozakVariable):
-            return KozakAssign(target.name, value)

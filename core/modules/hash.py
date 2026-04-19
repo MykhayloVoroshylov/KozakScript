@@ -6,3 +6,7 @@ class HashModule:
 
     def md5(self, text):
         return hashlib.md5(text.encode()).hexdigest()
+    
+    def sha1(self, text):
+        return hashlib.sha1(text.encode()).hexdigest()
+    

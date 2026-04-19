@@ -34,6 +34,7 @@ class KozakFunctionDef:
     param_types: dict = dataclasses.field(default_factory=dict)
     return_type: str = None
     access_modifier: str = 'public'
+    is_static: bool = False
 
 @dataclasses.dataclass (slots=True)
 class KozakFunctionCall:
@@ -181,3 +182,9 @@ class KozakSuper:
 @dataclasses.dataclass (slots=True)
 class KozakDestructor:
     body: list
+
+@dataclasses.dataclass(slots=True)
+class KozakStaticMethodCall:
+    class_name: str
+    method_name: str
+    arguments: list = dataclasses.field(default_factory=list)
