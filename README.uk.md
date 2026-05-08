@@ -63,35 +63,35 @@ KozakScriptInterpreter.exe hello.kozak
 
 # 🧪 Приклади синтаксису
 
-## українська (латиниця)
+## Український (латиниця)
 
 ```kozak
 Hetman
 Spivaty («Pryvit, svite!»);
 ```
 
-## українська (кирилиця)
+## Український (кирилиця)
 
 ```kozak
 Гетьман
 Співати("Привіт, світе!");
 ```
 
-## англійська
+## Англійський
 
 ```kozak
 Chief
 Print("Hello World!");
 ```
 
-## російська (латиниця)
+## Російський (латиниця)
 
 ```kozak
 Ataman
 Pechatat ("Privet, mir!");
 ```
 
-## російська (кирилиця)
+## Російський (кирилиця)
 
 ```kozak
 Атаман
@@ -111,7 +111,9 @@ Pechatat ("Privet, mir!");
 - `test_EN.kozak`
 - `test_RU.kozak`
 - `test_Sym.kozak`
-
+- `test_UA_Cyr.kozak`
+- `test_RU_Cyr.kozak`
+  
 ---
 
 # 📦 Об'єднання виконуваних файлів у пакет
