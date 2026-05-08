@@ -630,6 +630,18 @@ class GameModule:
             return
 
         required = self.METHOD_DIALECTS.get(method_name)
+
+        # --- НАШ ДЕБАГ ---
+        print(f"--- DEBUG KozakScript ---")
+        print(f"Викликаний метод: '{method_name}'")
+        print(f"Діалект методу в базі: {required}")
+        print(f"Поточний діалект системи: {self.dialect}")
+        # Перевіримо назву посимвольно на випадок прихованої латини
+        hex_name = ' '.join(hex(ord(c)) for c in method_name)
+        print(f"Hex-коди символів: {hex_name}")
+        print(f"-------------------------")
+        # -----------------
+
         if required and required != effective_dialect:
             friendly = DialectMessages.friendly_term(self.dialect)
             MESSAGES = {
