@@ -111,6 +111,8 @@ More examples can be found in:
 - `test_EN.kozak`
 - `test_RU.kozak`
 - `test_Sym.kozak`
+- `test_UA_Cyr.kozak`
+- `test_RU_Cyr.kozak`
 
 ---
 
