@@ -99,7 +99,7 @@ KEYWORDS = {
     'Ili_Yesli': 'AboYakscho',
     'Inache': 'Inakshe',
     'Dlinna': 'Dovzhyna',
-    'Kazhdy': 'KOZHEN',
+    'kazhdy': 'KOZHEN',
     'Klass': 'Klas',
     'Tvorenye': 'Tvir',
     'novyy': 'NEW',
@@ -222,7 +222,7 @@ KEYWORDS = {
     '<<<' : 'Vykhid',
     '#': 'Importuvaty',
     r'k{}': 'klyuchi_sym',
-    r'v{}': 'znachennya_sym', 
+    r'v{}': 'values_sym', 
     '?k': 'maye_klyuch_sym',
     '-k': 'vydalyty_klyuch_sym',
     '++>': 'PUBLIC',
@@ -235,7 +235,7 @@ KEYWORDS = {
     }
 
 TOKEN_SPECIFICATION = [
-    ('SYMBOLIC_MULTI', r'>>>|<<<|<->|<=>|##>|\+\+>|-->|\^>|1!|0!|!!>|!!|i`\*\*|f`\*\*|s`\*\*|b`\*\*|\+@|@=|@~|~`|~~|\?\?|\?!|<!|-<!|___|\[\.\.\]|->|::|<<|>>|<>|=<|=>|\+<|\+:|\?\^|-<|-<!|--<|\?:|-<|--<|k\{\}|v\{\}|\?k|-k|@\[\]|#\[\]|\[\]>|\[\]\^|\[\]->|\[\]\||\[\]:='),
+    ('SYMBOLIC_MULTI', r'>>>|_\+_\+_|<<<|<->|<=>|##>|\+\+>|-->|\^>|1!|0!|!!>|!!|i`\*\*|f`\*\*|s`\*\*|b`\*\*|\+@|@=|@~|~`|~~|\?\?|\?!|<!|-<!|___|\[\.\.\]|->|::|<<|>>|<>|=<|=>|\+<|\+:|\?\^|-<|-<!|--<|\?:|-<|--<|k\{\}|v\{\}|\?k|-k|@\[\]|#\[\]|\[\]>|\[\]\^|\[\]->|\[\]\||\[\]:='),
     ('NUMBER', r'\d+(\.\d*)?'),
     ('STRING', r'"[^"]*"|\'[^\']*\''),
     ('MLCOMMENT', r'/\*.*?\*/'), 
@@ -294,7 +294,7 @@ DIALECT_KEYWORDS = {
             'dodaty', 'vstavyty', 'vydalyty', 'vyinyaty', 'ochystyty', 'vyrizaty',
             'mistyt', 'index_z', 'Zapysaty', 'Chytaty', 'stvoryty_matrytsyu', 'rozmir_matrytsi', 'splushchyty', 'transportuvaty',
             'otrymaty_ryadok', 'otrymaty_stovpets', 'vstanovyty_na', 'Vidkrytyy', 'Zakrytyy', 'Zakhyshchenyy', 'Batko', 'Druh',
-            'Znyshchyty', 'Statychnyy'
+            'Znyshchyty', 'Statychnyy', 'vypadkove_chyslo'
         },
         'english': {
             'Chief', 'Print', 'Input', 'Return', 'Function', 'For', 'While',
@@ -304,7 +304,7 @@ DIALECT_KEYWORDS = {
             'keys', 'values', 'has_key', 'remove_key',
             'append', 'insert', 'remove', 'pop', 'clear', 'slice',
             'contains', 'index_of', 'Write', 'Read', 'create_matrix', 'matrix_size', 'flatten', 'transpose',
-            'get_row', 'get_col', 'set_at', 'Public', 'Private', 'Protected', 'Super', 'Friend', 'Destroy', 'Static'
+            'get_row', 'get_col', 'set_at', 'Public', 'Private', 'Protected', 'Super', 'Friend', 'Destroy', 'Static', 'randint'
         },
         'russian_latin': {
             'Ataman', 'Pechatat', 'Vvod', 'Vernut', 'Zadanie', 'Poka',
@@ -315,7 +315,7 @@ DIALECT_KEYWORDS = {
             'dobavit', 'vstavit', 'udalit', 'vytaschit', 'ochistit', 'vyrezat',
             'soderzhit', 'index_znachenia', 'Zapisat', 'Chitat','sozdat_matritsu', 'razmer_matritsy', 'spluschit', 'transportirovat',
             'poluchit_stroku', 'poluchit_stolbets', 'ustanovit_na', 'Otkrytyy', 'Zakrytyy', 'Zashchishchennyy', 'Roditel', 'Drug',
-            'Unichtozhit', 'Statichnyy'
+            'Unichtozhit', 'Statichnyy', 'sluchaynoye_chislo'
         },
         'ukrainian_cyrillic': {
             'Гетьман', 'Співати', 'Слухай', 'Повернути', 'Завдання', 'Доки',
@@ -326,7 +326,7 @@ DIALECT_KEYWORDS = {
             'додати', 'вставити', 'видалити', 'вийняти', 'очистити', 'вирізати',
             'містить', 'індекс_значення', 'Записати', 'Читати', 'створити_матрицю', 'розмір_матриці', 'сплющити', 'транспонувати',
             'отримати_рядок', 'отримати_стовпець', 'встановити_на', 'Відкритий', 'Закритий', 'Захищений', 'Батько', 'Друг',
-            'Знищити', 'Статичний'},
+            'Знищити', 'Статичний', 'випадкове_число'},
 
         'russian_cyrillic': {
             'Атаман', 'Печатать', 'Ввод', 'Вернуть', 'Задание', 'Пока',
@@ -334,19 +334,19 @@ DIALECT_KEYWORDS = {
             'Если', 'Или_Если', 'Иначе', 'длинна', 'каждый', 'Класс', 'Творение',
             'этот', 'Попробуй', 'Поймать', 'Наконец', 'Бросать', 'Выход', 'Импортировать',
             'значения', 'имеет_ключ', 'удалить_ключ',
-            'добавить', 'вставить', 'удалить', 'вытаскивать', 'очистить', 'вырезать',
+            'добавить', 'вставить', 'удалить', 'вытащить', 'очистить', 'вырезать',
             'содержит', 'индекс_значения', 'Записать',  'Читать','создать_матрицу', 'размер_матрицы', 'сплющить', 'транспонировать',
             'получить_строку', 'получить_столбец', 'установить_на', 'Открытый', 'Закрытый', 'Защищённый', 'Родитель', 'Друг',
-            'Уничтожить',  'Статичный'
+            'Уничтожить',  'Статичный', 'случайное_число'
         },
         'symbolic': {
             '>>>', '!', '?', '<!', '$', '~~', '~`',
             '1!', '0!', 'i`**', 'f`**', 's`**', 'b`**',
-            '??', '?!', '!!', '___', '::', '@', '@=',
+            '??', '?!', '!!', '___', '::', '@', '@=', '_+_+_',
             '+@', '->', '<<', '>>', '<>', '!!>', '<<<', '#',
             r'k{}', r'v{}', '?k', '-k',
             '+<', '+:', '-<', '-<!', '--<', '[..]',
-            '?^', '?:', '=>', '=<', '@[]', '#[]', '[]>', '[]^', '[]->', '[]|', '[]:=', '++>', '-->', '##>', '^>', '<->', '@~', '@@'
+            '?^', '?:', '=>', '=<', '@[]', '#[]', '[]>', '[]^', '[]->', '[]|', '[]:=', '++>', '-->', '##>', '^>', '<->', '@~', '@@', 
         }
     }
 
@@ -358,7 +358,7 @@ KEYWORD_TRANSLATIONS = {
         'Povernuty': {'ukrainian_latin': 	'Povernuty','english':'Return','russian_latin':'Vernut','symbolic':'<!',	'ukrainian_cyrillic':'Повернути','russian_cyrillic':'Вернуть'},
         'Zavdannya': {'ukrainian_latin': 	'Zavdannya' , 	'english':'Function','russian_latin':'Zadanie','symbolic':'$','ukrainian_cyrillic':'Завдання','russian_cyrillic':'Задание'},
         'Doki': {'ukrainian_latin': 	'Doki' , 	'english':'While','russian_latin':'Poka','symbolic':'~`','ukrainian_cyrillic':'Доки','russian_cyrillic':'Пока'},
-        
+
         # Types
         'Chyslo': {'ukrainian_latin': 'Chyslo', 'english': 'Int', 'russian_latin': 'Chislo', 'symbolic': 'i`**', 'ukrainian_cyrillic':'Число','russian_cyrillic':'Число'},
         'DroboveChyslo': {'ukrainian_latin': 'DroboveChyslo', 'english': 'Float', 'russian_latin': 'DrobnoyeChislo', 'symbolic': 'f`**', 'ukrainian_cyrillic':'ДробовеЧисло','russian_cyrillic':'ДробноеЧисло'},
@@ -396,8 +396,8 @@ KEYWORD_TRANSLATIONS = {
         # Other
         'Vykhid': {'ukrainian_latin': 'Vykhid', 'english': 'Exit', 'russian_latin': 'Vykhod', 'symbolic': '<<<', 'ukrainian_cyrillic':'Вихід','russian_cyrillic':'Выход'},
         'Importuvaty': {'ukrainian_latin': 'Importuvaty', 'english': 'Import', 'russian_latin': 'Importirovat', 'symbolic': '#', 'ukrainian_cyrillic':'Імпортувати','russian_cyrillic':'Импортировать'},
-        'KOZHEN': {'ukrainian_latin': 'kozhen', 'english': 'each', 'russian_latin': 'kazhdy', 'symbolic': '::', 'ukrainian_cyrillic':'кожен','russian_cyrillic':'каждый'},
         'Dovzhyna': {'ukrainian_latin': 'dovzhyna', 'english': 'length', 'russian_latin': 'dlinna', 'symbolic': '___', 'ukrainian_cyrillic':'довжина','russian_cyrillic':'длинна'},
+        'Randint':{'ukrainian_latin': 'vypadkove_chyslo', 'english': 'randint', 'russian_latin': 'sluchaynoye_chislo', 'symbolic': '_+_+_', 'ukrainian_cyrillic':'випадкове_число','russian_cyrillic':'случайное_число'}
     }
 
 

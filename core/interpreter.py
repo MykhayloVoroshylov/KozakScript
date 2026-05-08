@@ -429,8 +429,9 @@ class Interpreter:
             actual = type(value).__name__
             if not self._type_matches(actual, expected):
                 raise RuntimeErrorKozak(
-                    f"Type mismatch for '{node.name}': "
-                    f"expected {expected}, got {actual}"
+                    DialectMessages.runtime_error('type_mismatch', self.parent_dialect,
+                    name=node.name, expected=expected, actual=actual)
+                    + f", {self._term}."
                 )
             self.type_constraints[node.name] = expected
 
@@ -440,8 +441,11 @@ class Interpreter:
             
             if not self._type_matches(actual, expected):
                 raise RuntimeErrorKozak(
-                    f"Cannot assign {actual} to {expected} variable '{node.name}'"
-                )
+                DialectMessages.runtime_error('type_mismatch', self.parent_dialect, 
+                name=node.name, expected=expected, actual=actual)
+                + f", {self._term}."
+            )
+
         if self.current_function and node.name in self.globals and node.name not in locals().get('local_env', {}):
             self.globals[node.name] = value
         else:
@@ -497,7 +501,9 @@ class Interpreter:
         # Check global functions table for variables that might be function references
         if node.name in self.functions:
              return self.functions[node.name]
-        raise RuntimeErrorKozak(f'Variable {node.name} is not defined')
+        raise RuntimeErrorKozak(
+            DialectMessages.runtime_error('variable_not_defined', self.parent_dialect, name=node.name)
+            + f", {self._term}.")
 
     def _eval_binop(self, node):
         left = self.eval(node.left)
@@ -516,7 +522,10 @@ class Interpreter:
             return left * right
         elif node.op == '/':
             if right == 0:
-                raise RuntimeErrorKozak(f"Cannot divide by zero, {self._term}.")
+                raise RuntimeErrorKozak(
+                DialectMessages.runtime_error('divide_by_zero', self.parent_dialect)
+                + f", {self._term}."
+            )
             return left / right
         elif node.op == '%':
             return left % right
@@ -526,7 +535,10 @@ class Interpreter:
             return left ** right
         elif node.op == '^/':
             if right == 0:
-                raise RuntimeErrorKozak("Root exponent cannot be zero!")
+                raise RuntimeErrorKozak(
+                DialectMessages.runtime_error('zero_exponent', self.parent_dialect)
+                + f", {self._term}."
+            )
             return left ** (1 / right)
         elif node.op == '&&':
             return left and right
@@ -569,12 +581,20 @@ class Interpreter:
             try:
                 return int(value)
             except (ValueError, TypeError):
-                raise RuntimeErrorKozak(f"Cannot cast '{value}' to 'Int'.")
+                raise RuntimeErrorKozak(
+                DialectMessages.runtime_error('cast_error', self.parent_dialect, 
+                value=value, target='Int')
+                + f", {self._term}."
+            )
         elif node.target_type == 'DroboveChyslo':
             try:
                 return float(value)
             except (ValueError, TypeError):
-                raise RuntimeErrorKozak(f"Cannot cast '{value}' to 'Float'.")
+                raise RuntimeErrorKozak(
+                DialectMessages.runtime_error('cast_error', self.parent_dialect, 
+                value=value, target='Float')
+                + f", {self._term}."
+            )
         elif node.target_type == 'Ryadok':
             return str(value)
         elif node.target_type == 'Logika':
@@ -614,17 +634,26 @@ class Interpreter:
             
         var_name = node.target.name
         if var_name not in self.env:
-             raise RuntimeErrorKozak(f'Variable {var_name} is not defined for unary operation.')
+             raise RuntimeErrorKozak(
+                DialectMessages.runtime_error('variable_not_defined', self.parent_dialect, name=var_name)
+                + f", {self._term}."
+            )
 
         current_value = self.env[var_name]
         
         if node.op == '++':
             if not isinstance(current_value, (int, float)):
-                 raise RuntimeErrorKozak(f"Cannot increment non-numeric variable '{var_name}'.")
+                raise RuntimeErrorKozak(
+                    DialectMessages.runtime_error('numeric_op_required', self.parent_dialect, name=var_name)
+                    + f", {self._term}."
+                )
             self.env[var_name] = current_value + 1
         elif node.op == '--':
             if not isinstance(current_value, (int, float)):
-                 raise RuntimeErrorKozak(f"Cannot decrement non-numeric variable '{var_name}'.")
+                raise RuntimeErrorKozak(
+                    DialectMessages.runtime_error('numeric_op_required', self.parent_dialect, name=var_name)
+                    + f", {self._term}."
+                )
             self.env[var_name] = current_value - 1
         else:
              raise RuntimeErrorKozak(f'Unknown unary operator: {node.op}')
@@ -656,7 +685,11 @@ class Interpreter:
                         evaluated_args = [self.eval(arg_node) for arg_node in node.arguments]
                         return method(*evaluated_args)
                     else:
-                        raise RuntimeErrorKozak(f"Module '{first_part}' has no method '{method_name}', {self._term}.")
+                        raise RuntimeErrorKozak(
+                            DialectMessages.runtime_error('method_not_found', self.parent_dialect, 
+                            module=first_part, method=method_name)
+                            + f", {self._term}."
+                        )
 
 
         if '.' in node.name:
@@ -939,7 +972,7 @@ class Interpreter:
             arr.append(value)
             return None
 
-        if node.name == 'index_of' or node.name == 'index_z' or node.name == 'index_znachenia' or node.name == '?:' or node.name == 'индекс_з' or node.name == 'индекс_значения':
+        if node.name == 'index_of' or node.name == 'index_z' or node.name == 'index_znachenia' or node.name == 'index_znachennya' or node.name == '?:' or node.name == 'индекс_з' or node.name == 'индекс_значения' or node.name == 'індекс_з' or node.name == 'індекс_значення':
             if len(node.arguments) != 2:
                 raise RuntimeErrorKozak(f"Function 'index_of' expects exactly 2 arguments, {self._term}.")
             arr = self.eval(node.arguments[0])
@@ -1027,7 +1060,7 @@ class Interpreter:
                 raise RuntimeErrorKozak(f"File writing error: {e}")
 
 
-        if node.name in ('Chytaty', 'Read', 'Chitat', '=<'):
+        if node.name in ('Chytaty', 'Read', 'Chitat', '=<', 'Читати', 'Читать'):
             if len(node.arguments) != 1:
                 raise RuntimeErrorKozak(f"Function 'Read' expects exactly 1 argument, {self._term}.")
             file_name = self.eval(node.arguments[0])
@@ -1042,7 +1075,7 @@ class Interpreter:
                 raise RuntimeErrorKozak(f"File reading error: {e}")
 
 
-        if node.name in ('dovzhyna', 'length', 'dlinna', '___'):
+        if node.name in ('dovzhyna', 'length', 'dlinna', '___', 'длинна', 'довжина'):
             if len(node.arguments) != 1:
                 raise RuntimeErrorKozak(f"Function 'length' expects exactly 1 argument, {self._term}.")
             arg = self.eval(node.arguments[0])
@@ -1050,7 +1083,7 @@ class Interpreter:
                 raise RuntimeErrorKozak(f"Argument for 'length' must be an array or a string, {self._term}.")
             return len(arg)
         
-        if node.name == 'randint':
+        if node.name in('randint', 'випадкове_число', 'случайное_число', 'vypadkove_chyslo', 'sluchaynoye_chislo', '_+_+_'):
             if len(node.arguments) != 2:
                 raise RuntimeErrorKozak(f"Function 'randint' expects exactly 2 arguments, {self._term}.")
             start = self.eval(node.arguments[0])
@@ -1059,7 +1092,7 @@ class Interpreter:
                 raise RuntimeErrorKozak(f"Arguments for 'randint' must be integers, {self._term}.")
             return random.randint(start, end)
 
-        if node.name == 'klyuchi' or node.name == 'keys' or node.name == 'k{}' or node.name == 'klyuchi_sym':  # keys
+        if node.name in ('klyuchi', 'keys', 'k{}', 'klyuchi_sym', 'ключи', 'ключі'):  # keys
             if len(node.arguments) != 1:
                 raise RuntimeErrorKozak(f"Function 'keys' expects exactly 1 argument, {self._term}.")
             dictionary = self.eval(node.arguments[0])
@@ -1067,7 +1100,7 @@ class Interpreter:
                 raise RuntimeErrorKozak(f"Argument must be a dictionary, {self._term}.")
             return list(dictionary.keys())
 
-        if node.name == 'znachennya' or node.name == 'values' or node.name=='znachennie' or node.name == 'znachennya_sym':  # values
+        if node.name in ('znachennya', 'values', 'znachennie', 'values_sym', 'значення', 'значенние'):  # values
             if len(node.arguments) != 1:
                 raise RuntimeErrorKozak(f"Function 'values' expects exactly 1 argument, {self._term}.")
             dictionary = self.eval(node.arguments[0])
@@ -1075,7 +1108,7 @@ class Interpreter:
                 raise RuntimeErrorKozak(f"Argument must be a dictionary, {self._term}.")
             return list(dictionary.values())
 
-        if node.name == 'maye_klyuch' or node.name == 'has_key' or node.name == 'imeet_klyuch' or node.name == '?k':  # has_key
+        if node.name in ('maye_klyuch', 'has_key', 'imeet_klyuch', '?k', 'имеет_ключ', 'має_ключ'):  # has_key
             if len(node.arguments) != 2:
                 raise RuntimeErrorKozak(f"Function 'has_key' expects exactly 2 arguments, {self._term}.")
             dictionary = self.eval(node.arguments[0])
@@ -1140,7 +1173,11 @@ class Interpreter:
 
                 # 4. Перевіряємо кількість аргументів
                 if len(evaluated_args) != len(method_def.parameters):
-                    raise RuntimeErrorKozak(f"Method '{method_name}' expected {len(method_def.parameters)} arguments, but got {len(evaluated_args)}.")
+                    raise RuntimeErrorKozak(
+                        DialectMessages.runtime_error('arg_count_mismatch', self.parent_dialect, 
+                        name=method_name, expected=len(method_def.parameters), actual=len(evaluated_args))
+                        + f", {self._term}."
+                    )
 
                 # 5. Виконуємо метод (створюємо локальне оточення, встановлюємо 'this')
                 local_env = {"this": obj}
